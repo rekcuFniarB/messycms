@@ -70,13 +70,13 @@ def show(request, id=0, path=''):
     
     recursion[0] = 0 ## reset counter
     
-    article = parseTags(article, request, id)
+    article = parseTags(article, request)
     response = render(request, 'content.html', {'article': article})
     #print('Show(): #22 article.content')
     return response
 
 ## Tags parsing
-def parseTags(article, request, node_id=None):
+def parseTags(article, request):
     ''' Tags parsing function.
     Args:
         article: article object.
@@ -104,8 +104,8 @@ def parseTags(article, request, node_id=None):
             nodes = None
             
             parsed_id = match[1]
-            if parsed_id == 'self_id' and node_id is not None:
-                parsed_id = node_id
+            if parsed_id == 'self_id':
+                parsed_id = article.id
             
             if match[0] == 'menu':
                 ## It's a <!-- # menu # --> tag
@@ -117,15 +117,15 @@ def parseTags(article, request, node_id=None):
                 else:
                     nodes = getArticle(parsed_id)
                     ## Recursive content parsing
-                    nodes.content = parseTags(nodes, request, node_id)
+                    nodes.content = parseTags(nodes, request)
             elif match[0] == 'articles':
                 ## <!-- # articles # --> tag
                 nodes = getArticles(parsed_id)
                 for node in nodes:
-                    node = parseTags(node, request, node_id)
+                    node = parseTags(node, request)
             #elif match[0] == 'template':
             #    nodes = getArticle(parse_id)
-            #    nodes.content = parseTags(nodes, request, node_id)
+            #    nodes.content = parseTags(nodes, request)
                 
             
             ## template subdir
