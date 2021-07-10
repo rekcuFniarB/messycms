@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from mptt.models import MPTTModel, TreeForeignKey
 from django.utils.timezone import now
 from django.utils.text import slugify
+from django.urls import reverse
 
 class User(AbstractUser):
     pass
@@ -13,7 +14,8 @@ class Article(MPTTModel):
     menu_title = models.CharField(max_length=255, default='', blank=True)
     short = models.CharField(max_length=255, default='', blank=True)
     ## Not making it unique because it may appear with same name in 
-    ## different tree level.
+    ## different tree level. TODO consider making it unique and create on save
+    ## if blank.
     slug = models.CharField(max_length=255, default='')
     fmt = models.CharField(
         max_length = 3,
@@ -31,12 +33,12 @@ class Article(MPTTModel):
     content = models.TextField(default='', blank=True)
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     
-    def path(self):
+    def get_absolute_url(self):
         '''
             Builds URL path of item.
         '''
         ancestors = self.get_ancestors(include_self=True).values()
-        slugs = ['']
+        slugs = []
         for item in ancestors:
             slug = item['slug']
             #if not slug:
@@ -49,10 +51,7 @@ class Article(MPTTModel):
             
             slugs.append(slugify(slug, allow_unicode=True))
         
-        if len(slugs):
-            slugs.append('')
-        
-        return '/'.join(slugs)
+        return reverse('messcms-article-by-path', kwargs={'path': '/'.join(slugs)})
     
     
     def __str__(self):
