@@ -8,10 +8,10 @@ class User(AbstractUser):
     pass
 
 class Article(MPTTModel):
-    title = models.CharField(max_length=255, default='')
+    title = models.CharField(max_length=255, default='', blank=True)
     ## Custom title to show in menu
-    menu_title = models.CharField(max_length=255, default='')
-    short = models.CharField(max_length=255)
+    menu_title = models.CharField(max_length=255, default='', blank=True)
+    short = models.CharField(max_length=255, default='', blank=True)
     ## Not making it unique because it may appear with same name in 
     ## different tree level.
     slug = models.CharField(max_length=255, default='')
@@ -28,7 +28,7 @@ class Article(MPTTModel):
     show_in_menu = models.BooleanField(default=False)
     ## Is article available?
     available = models.BooleanField(default=True)
-    content = models.TextField(default='')
+    content = models.TextField(default='', blank=True)
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     
     def path(self):
