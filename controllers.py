@@ -17,7 +17,7 @@ def main(request):
         article = Article.objects.get(pk=settings.MAIN_ARTICLE)
     else:
         article = Article.objects.order_by('tree_id', 'level')[0]
-    article.content = parseTags(article.content, request)
+    article.content = parseTags(article, request)
     return render(request, 'content.html', {'article': article})
     #return JsonResponse(articles, safe=False)
 
@@ -40,7 +40,7 @@ def show(request, id):
 def parseTags(article, request, node_id=None):
     ''' Tags parsing function.
     Args:
-        content: string, article body or other text which may contain tags.
+        article: article object.
         request: request object.'''
     if recursion[0] > recursion[1]:
         ## avoid infinite recursion
@@ -78,15 +78,15 @@ def parseTags(article, request, node_id=None):
                 else:
                     nodes = getArticle(parsed_id)
                     ## Recursive content parsing
-                    nodes.content = parseTags(nodes.content, request, node_id)
+                    nodes.content = parseTags(nodes, request, node_id)
             elif match[0] == 'articles':
                 ## <!-- # articles # --> tag
                 nodes = getArticles(parsed_id)
                 for node in nodes:
-                    node.content = parseTags(node.content, request, node_id)
+                    node.content = parseTags(node, request, node_id)
             #elif match[0] == 'template':
             #    nodes = getArticle(parse_id)
-            #    nodes.content = parseTags(nodes.content, request, node_id)
+            #    nodes.content = parseTags(nodes, request, node_id)
                 
             
             ## template subdir
