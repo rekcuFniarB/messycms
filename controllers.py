@@ -31,76 +31,90 @@ def show(request, id):
     except Article.DoesNotExist:
         raise Http404('Requested article with ID %s doesn not exists.' % id)
     
-    article.content = parseTags(article.content, request)
+    article = parseTags(article, request, id)
     response = render(request, 'content.html', {'article': article})
-    print('Show(): #22 article.content')
+    #print('Show(): #22 article.content')
     return response
 
 ## Tags parsing
-def parseTags(content, request):
+def parseTags(article, request, node_id=None):
     ''' Tags parsing function.
     Args:
         content: string, article body or other text which may contain tags.
         request: request object.'''
     if recursion[0] > recursion[1]:
         ## avoid infinite recursion
-        return content
+        return article
     recursion[0] += 1 ## count this function calls
     
     ## If we have special tags in content, try to find and process them
-    if '<!-- #' in content:
+    if '<!-- #' in article.content:
         ## If processing in recursion, process only main part of content
-        if recursion[0] > 1 and '<!-- # main # -->' in content:
+        if recursion[0] > 1 and '<!-- # main # -->' in article.content:
             ## remove part before "<!-- main -->"
-            content = content.split('<!-- # main # -->')[1:]
-            content = ''.join(content)
+            article.content = article.content.split('<!-- # main # -->')[1:]
+            article.content = ''.join(article.content)
             ## remove part after "<!-- endmain -->"
-            content = content.split('<!-- # endmain # -->')[:-1]
-            content = ''.join(content)
+            article.content = article.content.split('<!-- # endmain # -->')[:-1]
+            article.content = ''.join(article.content)
         
         ## Tag format: <!-- # tagname param class # -->
-        matches = re.findall(r'<!-- # (\S+?) (\S+?) (\S+?) # -->', content, re.MULTILINE)
+        matches = re.findall(r'<!-- # (\S+?) (\S+?) (\S+?) # -->', article.content, re.MULTILINE)
         for match in matches:
             tag = '<!-- # %s %s %s # -->' % (match[0], match[1], match[2])
+            nodes = None
+            
+            parsed_id = match[1]
+            if parsed_id == 'self_id' and node_id:
+                parsed_id = node_id
+            
             if match[0] == 'menu':
                 ## It's a <!-- # menu # --> tag
-                nodes = getChildTree(match[1])
+                nodes = getChildTree(parsed_id)
             elif match[0] == 'article':
                 ## It's an <!-- # article # --> tag
-                nodes = getArticle(match[1])
-                ## Recursive content parsing
-                nodes.content = parseTags(nodes.content, request)
+                if match[1] == 'self_id':
+                    nodes = article
+                else:
+                    nodes = getArticle(parsed_id)
+                    ## Recursive content parsing
+                    nodes.content = parseTags(nodes.content, request, node_id)
             elif match[0] == 'articles':
                 ## <!-- # articles # --> tag
-                nodes = getArticles(match[1])
+                nodes = getArticles(parsed_id)
                 for node in nodes:
-                    node.content = parseTags(node.content, request)
+                    node.content = parseTags(node.content, request, node_id)
+            #elif match[0] == 'template':
+            #    nodes = getArticle(parse_id)
+            #    nodes.content = parseTags(nodes.content, request, node_id)
+                
             
             ## template subdir
             tdir = 'tags'
             
             ## So, we can get three templates:
-            ##     class-type-item.html
-            ##     class-type.html
+            ##     type-class-item.html
+            ##     type-class.html
             ##     type.html
             
             templates = (
-                os.path.join(tdir, f'{match[0]}-{match[2]}-{match[1]}.html'),
+                os.path.join(tdir, f'{match[0]}-{match[2]}-{parsed_id}.html'),
                 os.path.join(tdir, f'{match[0]}-{match[2]}.html'),
                 os.path.join(tdir, f'{match[2]}-{match[0]}.html'),
-                os.path.join(tdir, f'{match[0]}-{match[1]}.html'),
+                os.path.join(tdir, f'{match[0]}-{parsed_id}.html'),
                 os.path.join(tdir, f'{match[0]}.html'),
                 
             )
             
-            ## get content body of response object
-            cblock = render(request, templates, {'nodes': nodes}).content.decode('utf-8')
-            #cblock = '<div class="%s">%s</div>' % (match[2], cblock)
-            cblock = '<!-- block %s -->%s<!-- endblock %s -->' % (match[2], cblock, match[2])
-            ## inserting in the tag place
-            content = content.replace(tag, cblock)
+            if nodes:
+                ## get content body of response object
+                cblock = render(request, templates, {'nodes': nodes}).content.decode('utf-8')
+                #cblock = '<div class="%s">%s</div>' % (match[2], cblock)
+                cblock = '<!-- block %s -->%s<!-- endblock %s -->' % (match[2], cblock, match[2])
+                ## inserting in the tag place
+                article.content = article.content.replace(tag, cblock)
     
-    return content
+    return article
 
 def getChildTree(id):
     ''' Get child nodes of specified object.'''
