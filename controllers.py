@@ -7,6 +7,7 @@ import os
 from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import redirect
+from . import plugins
 
 recursion = [0, 30] ## [count, max]
 
@@ -70,10 +71,13 @@ def show(request, id=0, path=''):
     
     recursion[0] = 0 ## reset counter
     
-    article = parseTags(article, request)
-    response = render(request, 'content.html', {'article': article})
-    #print('Show(): #22 article.content')
-    return response
+    ## If page has config
+    if article.pageconf():
+        plugins.render(request, article)
+    else:
+        parseTags(article, request)
+    
+    return render(request, 'messcms/base.html', {'article': article})
 
 ## Tags parsing
 def parseTags(article, request):

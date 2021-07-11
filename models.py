@@ -4,11 +4,13 @@ from mptt.models import MPTTModel, TreeForeignKey
 from django.utils.timezone import now
 from django.utils.text import slugify
 from django.urls import reverse
+from . import plugins
 
 class User(AbstractUser):
     pass
 
 class Article(MPTTModel):
+    _pageconf = None
     title = models.CharField(max_length=255, default='', blank=True)
     ## Custom title to show in menu
     menu_title = models.CharField(max_length=255, default='', blank=True)
@@ -18,11 +20,9 @@ class Article(MPTTModel):
     ## if blank.
     slug = models.CharField(max_length=255, default='', blank=True)
     fmt = models.CharField(
-        max_length = 3,
-        choices = [
-                ('htm', 'HTML'),
-            ],
-        default = 'htm',
+        max_length = 32,
+        choices = plugins.get_list(),
+        default = plugins.get_list()[0][0],
         verbose_name = 'Type'
     )
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
@@ -32,6 +32,13 @@ class Article(MPTTModel):
     available = models.BooleanField(default=True)
     content = models.TextField(default='', blank=True)
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    ## Link to tree part, may be used in blocks
+    link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    def pageconf(self):
+        if not self._pageconf:
+            self._pageconf = self.get_children().filter(slug='.pageconf').first()
+        return self._pageconf
     
     def get_absolute_url(self):
         '''
@@ -55,6 +62,9 @@ class Article(MPTTModel):
     
     
     def __str__(self):
+        '''
+        Text representation for list in admin interfase
+        '''
         if self.slug.startswith('.'):
             return self.slug
         else:
