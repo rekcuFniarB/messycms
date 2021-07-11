@@ -16,7 +16,7 @@ class Article(MPTTModel):
     ## Not making it unique because it may appear with same name in 
     ## different tree level. TODO consider making it unique and create on save
     ## if blank.
-    slug = models.CharField(max_length=255, default='')
+    slug = models.CharField(max_length=255, default='', blank=True)
     fmt = models.CharField(
         max_length = 3,
         choices = [
@@ -55,4 +55,7 @@ class Article(MPTTModel):
     
     
     def __str__(self):
-        return '%s: %s' % (self.id, self.short)
+        if self.slug.startswith('.'):
+            return self.slug
+        else:
+            return '%s: %s' % (self.id, self.title or self.menu_title or self.short or self.slug)
