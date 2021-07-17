@@ -72,10 +72,7 @@ def show(request, id=0, path=''):
     recursion[0] = 0 ## reset counter
     
     ## If page has config
-    if article.pageconf():
-        #plugins.render(request, article)
-        pass
-    else:
+    if not article.pageconf:
         parseTags(article, request)
     
     return render(request, 'messcms/base.html', {'article': article})

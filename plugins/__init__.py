@@ -42,7 +42,7 @@ def render(request, page):
     
     #blocks = page.pageconf().get_children()
     available_plugins = dict(get_list())
-    for block in page.pageconf():
+    for block in page.pageconf:
         if block.fmt in available_plugins:
             page.content += f'<!-- block {block.fmt} -->\n'
             if block.fmt == 'html':

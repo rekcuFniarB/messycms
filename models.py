@@ -39,23 +39,41 @@ class Article(MPTTModel):
         self.slug = plugins.slugify(self.slug)
         super().save(*args, **kwargs)
     
+    @property
     def pageconf(self):
+        '''
+        Page attributes.
+        '''
         if not self._pageconf:
             self._pageconf = self.get_children().filter(slug='.pageconf').first()
             if self._pageconf:
                 self._pageconf = self._pageconf.get_children()
                 for item in self._pageconf:
-                    if item.fmt == 'property' and item.slug:
-                        name = plugins.slug2name(item.slug)
+                    ## Preparing content properties
+                    name = plugins.slug2name(item.slug)
+                    if item.fmt == 'property' and name:
                         if not hasattr(self._pageconf, name):
-                            try:
-                                item.content = json.loads(item.content)
-                            except:
-                                pass
-                            setattr(self._pageconf, name, item.content)
+                            value = item.content.strip()
+                            
+                            if not value:
+                                value = item.short.strip()
+                            
+                            if value:
+                                try:
+                                    value = json.loads(value)
+                                except:
+                                    pass
+                                
+                                setattr(self._pageconf, name, value)
             else:
                 self._pageconf = ()
         return self._pageconf
+    
+    def prop(self, name, default=None):
+        '''
+        Properties getter. Returns default value if property not exists.
+        '''
+        return getattr(self.pageconf, name, default)
     
     #def __get_prop(self, name, *args, **kwargs):
     #    return super().__get__(name, *args, **kwargs)
