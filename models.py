@@ -40,6 +40,12 @@ class Article(MPTTModel):
             self._pageconf = self.get_children().filter(slug='.pageconf').first()
         return self._pageconf
     
+    def render(self):
+        '''
+        Lazy content rendering
+        '''
+        return plugins.render(None, self)
+    
     def get_absolute_url(self):
         '''
             Builds URL path of item.

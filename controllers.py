@@ -73,7 +73,8 @@ def show(request, id=0, path=''):
     
     ## If page has config
     if article.pageconf():
-        plugins.render(request, article)
+        #plugins.render(request, article)
+        pass
     else:
         parseTags(article, request)
     
@@ -121,12 +122,12 @@ def parseTags(article, request):
                 else:
                     nodes = getArticle(parsed_id)
                     ## Recursive content parsing
-                    nodes.content = parseTags(nodes, request)
+                    parseTags(nodes, request)
             elif match[0] == 'articles':
                 ## <!-- # articles # --> tag
                 nodes = getArticles(parsed_id)
                 for node in nodes:
-                    node = parseTags(node, request)
+                    parseTags(node, request)
             #elif match[0] == 'template':
             #    nodes = getArticle(parse_id)
             #    nodes.content = parseTags(nodes, request)
