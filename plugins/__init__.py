@@ -1,11 +1,18 @@
 import sys, os
 from django.shortcuts import render as render_template
-from django.utils.text import slugify as django_slugify
+from django.utils import text
 
 self = sys.modules[__name__]
 
-def slugify(text):
-    return django_slugify(text.replace('_', '-'))
+def slugify(slug, *args, **kwargs):
+    '''
+    django.utils.text.slugify() wrapper.
+    It preserves leading dot and replaces "_" with "-"
+    '''
+    start = ''
+    if slug.startswith('.'):
+        start = '.'
+    return start + text.slugify(slug.replace('_', '-'), *args, **kwargs)
 
 def slug2name(slug):
     '''
@@ -14,7 +21,7 @@ def slug2name(slug):
     
     parts = slug.split('-')
     parts = [ x.capitalize() if x != parts[0] else x for x in parts]
-    return ''.join(parts)
+    return ''.join(parts).strip('. ')
 
 def get_list():
     ## TODO add support of project local plugins

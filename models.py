@@ -16,9 +16,8 @@ class Article(MPTTModel):
     ## Custom title to show in menu
     menu_title = models.CharField(max_length=255, default='', blank=True)
     short = models.CharField(max_length=255, default='', blank=True)
-    ## Not making it unique because it may appear with same name in 
-    ## different tree level. TODO consider making it unique and create on save
-    ## if blank.
+    ## Not not using SlugField and not making it unique because it may appear with same name in 
+    ## different tree level. Instead we prepare it in self.save().
     slug = models.CharField(max_length=255, default='', blank=True)
     fmt = models.CharField(
         max_length = 32,
@@ -35,6 +34,10 @@ class Article(MPTTModel):
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     ## Link to tree part, may be used in blocks
     link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        self.slug = plugins.slugify(self.slug)
+        super().save(*args, **kwargs)
     
     def pageconf(self):
         if not self._pageconf:
