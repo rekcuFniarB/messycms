@@ -5,6 +5,7 @@ from django.utils.timezone import now
 from django.utils.text import slugify
 from django.urls import reverse
 from . import plugins
+import json
 
 class User(AbstractUser):
     pass
@@ -38,7 +39,23 @@ class Article(MPTTModel):
     def pageconf(self):
         if not self._pageconf:
             self._pageconf = self.get_children().filter(slug='.pageconf').first()
+            if self._pageconf:
+                self._pageconf = self._pageconf.get_children()
+                for item in self._pageconf:
+                    if item.fmt == 'property' and item.slug:
+                        name = plugins.slug2name(item.slug)
+                        if not hasattr(self._pageconf, name):
+                            try:
+                                item.content = json.loads(item.content)
+                            except:
+                                pass
+                            setattr(self._pageconf, name, item.content)
+            else:
+                self._pageconf = ()
         return self._pageconf
+    
+    #def __get_prop(self, name, *args, **kwargs):
+    #    return super().__get__(name, *args, **kwargs)
     
     def render(self):
         '''
@@ -75,3 +92,23 @@ class Article(MPTTModel):
             return self.slug
         else:
             return '%s: %s' % (self.id, self.title or self.menu_title or self.short or self.slug)
+
+#class PageConf():
+    #__data__ = None
+    
+    #def __init__(self, data):
+        #if not data:
+            #data = {}
+        #self.__dict__ = data
+    
+    #def __call__(self):
+        #return self.__dict__
+    
+    #def __bool__(self):
+        #return bool(self.__dict__)
+    
+    #def __iter__(self):
+        #if type(self.__dict__) is dict:
+            #return iter(self.__dict__)
+        #else:
+            #return self.__dict__

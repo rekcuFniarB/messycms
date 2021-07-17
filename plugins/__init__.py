@@ -7,6 +7,15 @@ self = sys.modules[__name__]
 def slugify(text):
     return django_slugify(text.replace('_', '-'))
 
+def slug2name(slug):
+    '''
+    Turns string 'aaa-bbb-ccc' into 'AaaBbbCcc'
+    '''
+    
+    parts = slug.split('-')
+    parts = [ x.capitalize() if x != parts[0] else x for x in parts]
+    return ''.join(parts)
+
 def get_list():
     ## TODO add support of project local plugins
     return (
@@ -14,18 +23,19 @@ def get_list():
         ('items_tree', 'Items tree'),
         ('items_list', 'Items list'),
         ('include_item', 'Inclue item'),
+        ('property', 'Property'),
     )
 
 def render(request, page):
     '''
     Renders each page block.
     '''
-    if not page.pageconf():
-        return page.content
+    #if not page.pageconf():
+        #return page.content
     
-    blocks = page.pageconf().get_children()
+    #blocks = page.pageconf().get_children()
     available_plugins = dict(get_list())
-    for block in blocks:
+    for block in page.pageconf():
         if block.fmt in available_plugins:
             page.content += f'<!-- block {block.fmt} -->\n'
             if block.fmt == 'html':
@@ -69,13 +79,13 @@ def templates(block):
 ## Additional plugins may be placed inside this module dirs.
 ## Also project may define it's own plugins (TODO not implemented)
 
-def items_tree(block):
+def items_tree(block, show_in_menu=False):
     '''
     Renders menu type block
     '''
     result = None
     if block.link:
-        items = block.link.get_descendants().filter(show_in_menu=True, available=True)
+        items = block.link.get_descendants().filter(show_in_menu=show_in_menu, available=True)
         if items:
             result = {'templates': templates(block), 'nodes': items}
     return result
