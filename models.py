@@ -37,6 +37,11 @@ class Article(MPTTModel):
     
     def save(self, *args, **kwargs):
         self.slug = plugins.slugify(self.slug)
+        if self.fmt == '.pageconf':
+            self.slug = self.fmt
+            self.available = False
+            self.show_in_menu = False
+        
         super().save(*args, **kwargs)
     
     @property
@@ -45,7 +50,7 @@ class Article(MPTTModel):
         Page attributes.
         '''
         if not self._pageconf:
-            self._pageconf = self.get_children().filter(slug='.pageconf').first()
+            self._pageconf = self.get_children().filter(fmt='.pageconf').first()
             if self._pageconf:
                 self._pageconf = self._pageconf.get_children()
                 for item in self._pageconf:

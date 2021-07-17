@@ -31,6 +31,7 @@ def get_list():
         ('items_list', 'Items list'),
         ('include_item', 'Inclue item'),
         ('property', 'Property'),
+        ('.pageconf', 'Page conf'),
     )
 
 def render(request, page):
@@ -102,10 +103,15 @@ def items_list(block):
     Renders one level list of items.
     '''
     result = None
+    items = None
     if block.link:
         items = block.link.get_children().filter(available=True)
-        if items:
-            result = {'templates': templates(block), 'nodes': items}
+    else:
+        items = block.parent.parent.get_children().filter(available=True)
+    
+    if items:
+        result = {'templates': templates(block), 'nodes': items}
+    
     return result
 
 def include_item(block):
