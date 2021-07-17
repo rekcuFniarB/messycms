@@ -12,6 +12,8 @@ class User(AbstractUser):
 
 class Article(MPTTModel):
     _pageconf = None
+    _request = None
+    
     title = models.CharField(max_length=255, default='', blank=True)
     ## Custom title to show in menu
     menu_title = models.CharField(max_length=255, default='', blank=True)
@@ -52,11 +54,11 @@ class Article(MPTTModel):
         if not self._pageconf:
             self._pageconf = self.get_children().filter(fmt='.pageconf').first()
             if self._pageconf:
-                self._pageconf = self._pageconf.get_children()
+                self._pageconf = self._pageconf.get_children().filter(available=True)
                 for item in self._pageconf:
                     ## Preparing content properties
                     name = plugins.slug2name(item.slug)
-                    if item.fmt == 'property' and name:
+                    if item.fmt == '.property' and name:
                         if not hasattr(self._pageconf, name):
                             value = item.content.strip()
                             
@@ -80,15 +82,6 @@ class Article(MPTTModel):
         '''
         return getattr(self.pageconf, name, default)
     
-    #def __get_prop(self, name, *args, **kwargs):
-    #    return super().__get__(name, *args, **kwargs)
-    
-    def render(self):
-        '''
-        Lazy content rendering
-        '''
-        return plugins.render(None, self)
-    
     def get_absolute_url(self):
         '''
             Builds URL path of item.
@@ -103,9 +96,9 @@ class Article(MPTTModel):
             #    slug = item['title']
             ## It was bad idea. It's better just to use id if slug is not defined.
             if not slug:
-                slug = item['id']
+                slug = str(item['id'])
             
-            slugs.append(slugify(slug, allow_unicode=True))
+            slugs.append(plugins.slugify(slug))
         
         return reverse('messcms-article-by-path', kwargs={'path': '/'.join(slugs)})
     

@@ -1,8 +1,10 @@
 import sys, os
 from django.shortcuts import render as render_template
 from django.utils import text
+from django.conf import settings
 
 self = sys.modules[__name__]
+DEBUG = False #settings.DEBUG
 
 def slugify(slug, *args, **kwargs):
     '''
@@ -21,7 +23,7 @@ def slug2name(slug):
     
     parts = slug.split('-')
     parts = [ x.capitalize() if x != parts[0] else x for x in parts]
-    return ''.join(parts).strip('. ')
+    return ''.join(parts).strip('.- ')
 
 def get_list():
     ## TODO add support of project local plugins
@@ -30,41 +32,81 @@ def get_list():
         ('items_tree', 'Items tree'),
         ('items_list', 'Items list'),
         ('include_item', 'Inclue item'),
-        ('property', 'Property'),
+        ('.property', 'Property'),
         ('.pageconf', 'Page conf'),
     )
 
-def render(request, page):
-    '''
-    Renders each page block.
-    '''
-    #if not page.pageconf():
-        #return page.content
+
+def render_node(node, request=None, ready_blocks=None, parent=None):
+    if ready_blocks is None:
+        ready_blocks = {}
     
-    #blocks = page.pageconf().get_children()
+    if node.fmt.startswith('.'):
+        ## It's service type
+        node.content = ''
+        return node
+    
+    if node.id in ready_blocks:
+        ## already processed
+        node.content = ready_blocks[node.id].content
+        return node
+    ready_blocks[node.id] = node
+    
     available_plugins = dict(get_list())
-    for block in page.pageconf:
-        if block.fmt in available_plugins:
-            page.content += f'<!-- block {block.fmt} -->\n'
-            if block.fmt == 'html':
-                page.content += block.content
-            ## If function exists here
-            #elif block.fmt in dir():
-            elif hasattr(self, block.fmt): ## same as above
-                ## calling function named as block.fmt
-                result = getattr(self, block.fmt)(block)
-                if result:
-                    page.content += render_template(
-                        request, result['templates'],
-                        {
-                            ## Menu tree nodes
-                            'nodes': result['nodes'],
-                            ## Page self
-                            'page': page
-                        }
-                    ).content.decode('utf-8')
-            page.content += f'<!-- endblock {block.fmt} -->\n'
-    return page.content
+    
+    if DEBUG:
+        node.content += f'<h3>Block {parent}/{node.id} / {node.slug} / {node.fmt}'
+    
+    
+    if node.fmt in available_plugins: # {
+        node.content += f'<!-- block {node.id} / {node.slug} / {node.fmt} -->\n'
+        
+        #if node.fmt in dir():
+        if hasattr(self, node.fmt): ## same as above
+            ## Calling method from this module
+            result = getattr(self, node.fmt)(node)
+            if result: # {
+                for _ in result['nodes']:
+                    render_node(_, request, ready_blocks, node.id)
+                
+                node.content += render_template(
+                    request, result['templates'],
+                    {
+                        ## Tree nodes
+                        'nodes': result['nodes'],
+                        ## Page self
+                        'page': node
+                    }
+                ).content.decode('utf-8')
+            # } endif result
+        node.content += f'<!-- endblock {node.id} / {node.slug} / {node.fmt} -->\n'
+        
+        #print('NODE CONF:', node.pageconf)
+        
+        if DEBUG:
+            node.content += f'<h4>BEGIN SUBBLOCKS {parent}/{node.id}</h4>\n'
+        ## Now rendering included nodes if exist
+        for block in node.pageconf:
+            print('SUB BLOCK:', block)
+            node.content += render_node(block, request, ready_blocks, node.id).content
+            if (block.fmt == 'html'):
+                print('HTML', block.content)
+                #node.content += block.content
+            #node.content += block.content
+            if DEBUG:
+                node.content += f'<h4>SUBBLOCK {parent}/{node.id}/{block.id}</h4>\n'
+        if DEBUG:
+            node.content += f'<h4>END SUBBLOCKS {parent}/{node.id}</h4>\n'
+        
+        
+    # } endif plugin available
+    else:
+        node.content += f'<b>NONE</b><!-- noplug {node.id} / {node.slug} / {node.fmt} -->\n'
+    
+    if DEBUG:
+        node.content += f'<h3>EndBlock {parent}/{node.id} / {node.slug} / {node.fmt}'
+    
+    return node
 
 def templates(block):
     templatedir = 'messcms/blocks'
@@ -80,6 +122,7 @@ def templates(block):
         os.path.join(templatedir, f'{block_type}-{slugify(block.title)}.html'),
         os.path.join(templatedir, f'{block_type}-{slugify(block.slug)}.html'),
         os.path.join(templatedir, f'{block_type}-{slugify(block.short)}.html'),
+        #os.path.join(templatedir, f'{block_type}-test.html'),
         os.path.join(templatedir, f'{block_type}.html'),
     )
 
@@ -87,13 +130,13 @@ def templates(block):
 ## Additional plugins may be placed inside this module dirs.
 ## Also project may define it's own plugins (TODO not implemented)
 
-def items_tree(block, show_in_menu=False):
+def items_tree(block, *args, **kwargs):
     '''
     Renders tree type block. TODO add menu support
     '''
     result = None
     if block.link:
-        items = block.link.get_descendants().filter(show_in_menu=show_in_menu, available=True)
+        items = block.link.get_descendants().filter(available=True, *args, **kwargs)
         if items:
             result = {'templates': templates(block), 'nodes': items}
     return result
@@ -120,5 +163,5 @@ def include_item(block):
     '''
     result = None
     if block.link and block.link.available:
-        result = {'templates': templates(block), 'nodes': block.link}
+        result = {'templates': templates(block), 'nodes': [block.link]}
     return result
