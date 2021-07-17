@@ -88,7 +88,7 @@ def templates(block):
 
 def items_tree(block, show_in_menu=False):
     '''
-    Renders menu type block
+    Renders tree type block. TODO add menu support
     '''
     result = None
     if block.link:
@@ -99,7 +99,7 @@ def items_tree(block, show_in_menu=False):
 
 def items_list(block):
     '''
-    Renders list of items
+    Renders one level list of items.
     '''
     result = None
     if block.link:
@@ -110,7 +110,7 @@ def items_list(block):
 
 def include_item(block):
     '''
-    Renders one element
+    Renders one element.
     '''
     result = None
     if block.link and block.link.available:
