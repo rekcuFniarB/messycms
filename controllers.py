@@ -1,6 +1,7 @@
 from .models import Article
 from django.shortcuts import render
 from django.http import JsonResponse, Http404
+from django.core.exceptions import PermissionDenied
 from pprint import pprint
 import re
 import os
@@ -57,10 +58,6 @@ def show(request, id=0, path=''):
         if article.id != str2int(last_slug) and article.slug != last_slug:
             raise Http404(f'Got wrong article {article.id} {article.slug} while {last_slug} expected.')
         
-        if article.get_absolute_url().strip('/') != request.path.strip('/'):
-            ## redirects to get_absolute_url() of model
-            return redirect(article)
-        
     elif id:
         try:
            article = Article.objects.get(pk=id)
@@ -68,6 +65,13 @@ def show(request, id=0, path=''):
            raise Http404('Requested article with ID %s doesn not exists.' % id)
     else:
         raise Http404('Bad request, no page id or slug given.')
+    
+    if article.fmt != 'html' or not article.available or article.slug.startswith('.'):
+        raise PermissionDenied
+    
+    if article.get_absolute_url().strip('/') != request.path.strip('/'):
+        ## redirects to get_absolute_url() of model
+        return redirect(article)
     
     plugins.render_node(article, request)
     
