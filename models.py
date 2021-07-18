@@ -39,6 +39,10 @@ class Article(MPTTModel):
     
     def save(self, *args, **kwargs):
         self.slug = plugins.slugify(self.slug)
+        
+        if not self.slug and self.fmt.startswith('.'):
+            self.slug = self.fmt
+        
         if self.fmt == '.pageconf':
             self.slug = self.fmt
             self.available = False
@@ -58,20 +62,23 @@ class Article(MPTTModel):
                 for item in self._pageconf:
                     ## Preparing content properties
                     name = plugins.slug2name(item.slug)
-                    if item.fmt == '.property' and name:
-                        if not hasattr(self._pageconf, name):
-                            value = item.content.strip()
-                            
-                            if not value:
-                                value = item.short.strip()
-                            
-                            if value:
-                                try:
-                                    value = json.loads(value)
-                                except:
-                                    pass
+                    if name:
+                        if item.fmt == '.property':
+                            if not hasattr(self._pageconf, name):
+                                value = item.content.strip()
                                 
-                                setattr(self._pageconf, name, value)
+                                if not value:
+                                    value = item.short.strip()
+                                
+                                if value:
+                                    try:
+                                        value = json.loads(value)
+                                    except:
+                                        pass
+                                    
+                                    setattr(self._pageconf, name, value)
+                        else:
+                            setattr(self._pageconf, name, item)
             else:
                 self._pageconf = ()
         return self._pageconf

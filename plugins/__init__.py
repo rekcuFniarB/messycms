@@ -34,10 +34,11 @@ def get_list():
         ('include_item', 'Inclue item'),
         ('.property', 'Property'),
         ('.pageconf', 'Page conf'),
+        ('inclusion_point', 'Inclusion point'),
     )
 
 
-def render_node(node, request=None, ready_blocks=None, parent=None):
+def render_node(node, request=None, ready_blocks=None):
     if ready_blocks is None:
         ready_blocks = {}
     
@@ -54,57 +55,51 @@ def render_node(node, request=None, ready_blocks=None, parent=None):
     
     available_plugins = dict(get_list())
     
-    if DEBUG:
-        node.content += f'<h3>Block {parent}/{node.id} / {node.slug} / {node.fmt}'
-    
-    
     if node.fmt in available_plugins: # {
-        node.content += f'<!-- block {node.id} / {node.slug} / {node.fmt} -->\n'
+        node.content += f'<!-- block {node.id} -->\n'
         
         #if node.fmt in dir():
         if hasattr(self, node.fmt): ## same as above
             ## Calling method from this module
-            result = getattr(self, node.fmt)(node)
+            result = getattr(self, node.fmt)(node, request)
             if result: # {
-                for _ in result['nodes']:
-                    render_node(_, request, ready_blocks, node.id)
+                if 'nodes' in result:
+                    for _ in result['nodes']:
+                        render_node(_, request, ready_blocks)
                 
-                node.content += render_template(
-                    request, result['templates'],
-                    {
-                        ## Tree nodes
-                        'nodes': result['nodes'],
-                        ## Page self
-                        'page': node
-                    }
-                ).content.decode('utf-8')
+                if 'templates' in result:
+                    node.content += render_template(
+                        request, result['templates'],
+                        {
+                            ## Tree nodes
+                            'nodes': result['nodes'],
+                            ## Page self
+                            'page': node
+                        }
+                    ).content.decode('utf-8')
+                
+                if 'content' in result:
+                    node.content += result['content']
             # } endif result
-        node.content += f'<!-- endblock {node.id} / {node.slug} / {node.fmt} -->\n'
+        node.content += f'<!-- endblock {node.id} -->\n'
         
-        #print('NODE CONF:', node.pageconf)
-        
-        if DEBUG:
-            node.content += f'<h4>BEGIN SUBBLOCKS {parent}/{node.id}</h4>\n'
         ## Now rendering included nodes if exist
         for block in node.pageconf:
-            print('SUB BLOCK:', block)
-            node.content += render_node(block, request, ready_blocks, node.id).content
-            if (block.fmt == 'html'):
-                print('HTML', block.content)
-                #node.content += block.content
-            #node.content += block.content
-            if DEBUG:
-                node.content += f'<h4>SUBBLOCK {parent}/{node.id}/{block.id}</h4>\n'
-        if DEBUG:
-            node.content += f'<h4>END SUBBLOCKS {parent}/{node.id}</h4>\n'
-        
-        
+            node.content += render_node(block, request, ready_blocks).content
     # } endif plugin available
-    else:
-        node.content += f'<b>NONE</b><!-- noplug {node.id} / {node.slug} / {node.fmt} -->\n'
     
-    if DEBUG:
-        node.content += f'<h3>EndBlock {parent}/{node.id} / {node.slug} / {node.fmt}'
+    if node.link and node.fmt == 'html':
+        ## Using node.link as parent template.
+        ## We insert current node content into it.
+        
+        ## Rendering parent template
+        render_node(node.link, request, ready_blocks)
+        inclusion_point_string = inclusion_point(node.link, request)['content']
+        if inclusion_point_string in node.link.content:
+            node.link.content = node.link.content.replace(inclusion_point_string, node.content)
+        #else:
+        #    node.link.content += node.content
+        node.content = node.link.content
     
     return node
 
@@ -130,7 +125,7 @@ def templates(block):
 ## Additional plugins may be placed inside this module dirs.
 ## Also project may define it's own plugins (TODO not implemented)
 
-def items_tree(block, *args, **kwargs):
+def items_tree(block, request=None, *args, **kwargs):
     '''
     Renders tree type block. TODO add menu support
     '''
@@ -141,7 +136,7 @@ def items_tree(block, *args, **kwargs):
             result = {'templates': templates(block), 'nodes': items}
     return result
 
-def items_list(block):
+def items_list(block, request=None, *args, **kwargs):
     '''
     Renders one level list of items.
     '''
@@ -157,7 +152,7 @@ def items_list(block):
     
     return result
 
-def include_item(block):
+def include_item(block, request=None, *args, **kwargs):
     '''
     Renders one element.
     '''
@@ -165,3 +160,11 @@ def include_item(block):
     if block.link and block.link.available:
         result = {'templates': templates(block), 'nodes': [block.link]}
     return result
+
+def inclusion_point(node, request, *args, **kwargs):
+    if node.fmt == 'inclusion_point':
+        id = node.parent.parent.id
+    else:
+        id = node.id
+    
+    return {'content': f'<template data-hash="{hash(request)}" data-id="{id}"></template>'}
