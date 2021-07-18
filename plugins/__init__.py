@@ -1,6 +1,7 @@
 import sys, os
 from django.shortcuts import render as render_template
 from django.utils import text
+from django.utils.safestring import mark_safe
 from django.conf import settings
 
 self = sys.modules[__name__]
@@ -100,6 +101,9 @@ def render_node(node, request=None, ready_blocks=None):
         #else:
         #    node.link.content += node.content
         node.content = node.link.content
+    
+    ## TODO make it only if author is in staff group
+    node.content = mark_safe(node.content)
     
     return node
 
