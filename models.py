@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractUser
 from mptt.models import MPTTModel, TreeForeignKey
 from django.utils.timezone import now
@@ -34,6 +35,7 @@ class Node(MPTTModel):
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     ## Link to tree part, may be used in blocks
     link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
+    sites = models.ManyToManyField(Site)
     
     context = {}
     
@@ -142,3 +144,9 @@ class Node(MPTTModel):
             #return iter(self.__dict__)
         #else:
             #return self.__dict__
+
+## Table for mamytomany sites reference. Wasn't created automatically by migrations for some reason.
+#    CREATE TABLE IF NOT EXISTS "MessyCMS_node_sites" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "node_id" integer NOT NULL REFERENCES "MessyCMS_node" ("id") DEFERRABLE INITIALLY DEFERRED, "site_id" integer NOT NULL REFERENCES "django_site" ("id") DEFERRABLE INITIALLY DEFERRED);
+#    CREATE UNIQUE INDEX "MessyCMS_node_sites_node_id_site_id_bc85e8ad_uniq" ON "MessyCMS_node_sites" ("node_id", "site_id");
+#    CREATE INDEX "MessyCMS_node_sites_node_id_faa45963" ON "MessyCMS_node_sites" ("node_id");
+#    CREATE INDEX "MessyCMS_node_sites_site_id_96701cdf" ON "MessyCMS_node_sites" ("site_id");
