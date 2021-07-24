@@ -1,5 +1,5 @@
 import sys, os
-from django.shortcuts import render as render_template
+from django.template.loader import render_to_string
 from django.utils import text
 from django.utils.safestring import mark_safe
 from django.conf import settings
@@ -69,15 +69,16 @@ def render_node(node, request=None, ready_blocks=None):
                         render_node(_, request, ready_blocks)
                 
                 if 'templates' in result:
-                    node.content += render_template(
-                        request, result['templates'],
+                    node.content += render_to_string(
+                        result['templates'],
                         {
                             ## Tree nodes
                             'nodes': result['nodes'],
                             ## Page self
                             'page': node
-                        }
-                    ).content.decode('utf-8')
+                        },
+                        request
+                    )
                 
                 if 'content' in result:
                     node.content += result['content']
@@ -89,7 +90,7 @@ def render_node(node, request=None, ready_blocks=None):
             node.content += render_node(block, request, ready_blocks).content
     # } endif plugin available
     
-    if node.link and node.fmt == 'html':
+    if node.link_id and node.fmt == 'html':
         ## Using node.link as parent template.
         ## We insert current node content into it.
         
@@ -97,10 +98,7 @@ def render_node(node, request=None, ready_blocks=None):
         render_node(node.link, request, ready_blocks)
         inclusion_point_string = inclusion_point(node.link, request)['content']
         if inclusion_point_string in node.link.content:
-            node.link.content = node.link.content.replace(inclusion_point_string, node.content)
-        #else:
-        #    node.link.content += node.content
-        node.content = node.link.content
+            node.content = node.link.content.replace(inclusion_point_string, node.content)
     
     ## TODO make it only if author is in staff group
     node.content = mark_safe(node.content)
@@ -171,4 +169,4 @@ def inclusion_point(node, request, *args, **kwargs):
     else:
         id = node.id
     
-    return {'content': f'<template data-hash="{hash(request)}" data-id="{id}"></template>'}
+    return {'content': f'<template data-id="{id}"></template>'}
