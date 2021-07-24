@@ -1,5 +1,6 @@
 import sys, os
 from django.template.loader import render_to_string
+from django.template import TemplateDoesNotExist
 from django.utils import text
 from django.utils.safestring import mark_safe
 from django.conf import settings
@@ -58,8 +59,9 @@ def render(node, request=None, ready_blocks=None):
     if node.type in available_plugins: # {
         node.content += f'<!-- block {node.id} -->\n'
         
+        ## If there is method
         #if node.type in dir():
-        if hasattr(self, node.type): ## same as above
+        if hasattr(self, node.type): ## same as above {
             ## Calling method from this module
             result = getattr(self, node.type)(node, request)
             if result: # {
@@ -67,16 +69,35 @@ def render(node, request=None, ready_blocks=None):
                 #    for _ in result['nodes']:
                 #        render_node(_, request, ready_blocks)
                 
+                node.context = result.get('context', {})
+                node.context['test'] = node.id
                 if 'templates' in result:
                     node.content += render_to_string(
                         result['templates'],
-                        result.get('context', {}),
+                        node.context,
                         request
                     )
                 
                 if 'content' in result:
                     node.content += result['content']
             # } endif result
+        # } ## endif there is method
+        else: # {
+            ## Try to include template if exists
+            try:
+                node.content += render_to_string(
+                    templates(node),
+                    {
+                        'node': ready_blocks.get(node.parent.parent_id, node.parent.parent)
+                    },
+                    request
+                )
+            except TemplateDoesNotExist:
+                pass
+            except AttributeError:
+                pass
+        # }
+        
         node.content += f'<!-- endblock {node.id} -->\n'
         
         ## Now rendering included nodes if exist
@@ -113,6 +134,7 @@ def templates(block):
         os.path.join(templatedir, f'{block_type}-{slugify(block.slug)}.html'),
         os.path.join(templatedir, f'{block_type}-{slugify(block.short)}.html'),
         #os.path.join(templatedir, f'{block_type}-test.html'),
+        os.path.join(templatedir, f'{slugify(block.slug)}.html'),
         os.path.join(templatedir, f'{block_type}.html'),
     )
 
@@ -159,7 +181,15 @@ def items_list(block, request=None, *args, **kwargs):
     
     ## If block has "limit" property
     limit = block.prop('limit')
-    if limit:
+    ## If block has "pagination" property
+    ## Should contain number of items per page
+    pagination = int(block.prop('pagination', 0))
+    
+    if pagination:
+        from django.core.paginator import Paginator
+        paginator = Paginator(items, pagination)
+        items = paginator.get_page(request.GET.get('page'))
+    elif limit:
         if type(limit) is list:
             if len(limit) > 1:
                 items = items[limit[0]:limit[1]]

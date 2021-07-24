@@ -35,6 +35,8 @@ class Node(MPTTModel):
     ## Link to tree part, may be used in blocks
     link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
     
+    context = {}
+    
     def save(self, *args, **kwargs):
         self.slug = plugins.slugify(self.slug)
         if self.type == '.conf':
@@ -70,6 +72,8 @@ class Node(MPTTModel):
                                     pass
                                 
                                 setattr(self.__conf, name, value)
+                    elif not hasattr(self.__conf, name):
+                        setattr(self.__conf, name, item)
             else:
                 self.__conf = ()
         return self.__conf
