@@ -8,37 +8,37 @@ import mptt.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('MessCMS', '0004_auto_20210710_0823'),
+        ('MessyCMS', '0004_auto_20210710_0823'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='article',
+            model_name='node',
             name='link',
-            field=mptt.fields.TreeForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='MessCMS.article'),
+            field=mptt.fields.TreeForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='MessyCMS.node'),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='content',
             field=models.TextField(blank=True, default=''),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='menu_title',
             field=models.CharField(blank=True, default='', max_length=255),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='short',
             field=models.CharField(blank=True, default='', max_length=255),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='slug',
             field=models.CharField(blank=True, default='', max_length=255),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='title',
             field=models.CharField(blank=True, default='', max_length=255),
         ),

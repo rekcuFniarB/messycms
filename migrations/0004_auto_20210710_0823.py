@@ -6,42 +6,42 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('MessCMS', '0003_auto_20210710_0725'),
+        ('MessyCMS', '0003_auto_20210710_0725'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='article',
+            model_name='node',
             name='available',
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='article',
+            model_name='node',
             name='menu_title',
             field=models.CharField(default='', max_length=255),
         ),
         migrations.AddField(
-            model_name='article',
+            model_name='node',
             name='slug',
             field=models.CharField(default='', max_length=255),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='content',
             field=models.TextField(default=''),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='short',
             field=models.CharField(max_length=255),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='show_in_menu',
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='title',
             field=models.CharField(default='', max_length=255),
         ),

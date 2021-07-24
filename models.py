@@ -10,10 +10,8 @@ import json
 class User(AbstractUser):
     pass
 
-class Article(MPTTModel):
-    _pageconf = None
-    _request = None
-    
+class Node(MPTTModel):
+    __conf = None
     title = models.CharField(max_length=255, default='', blank=True)
     ## Custom title to show in menu
     menu_title = models.CharField(max_length=255, default='', blank=True)
@@ -21,7 +19,7 @@ class Article(MPTTModel):
     ## Not not using SlugField and not making it unique because it may appear with same name in 
     ## different tree level. Instead we prepare it in self.save().
     slug = models.CharField(max_length=255, default='', blank=True)
-    fmt = models.CharField(
+    type = models.CharField(
         max_length = 32,
         choices = plugins.get_list(),
         default = plugins.get_list()[0][0],
@@ -30,7 +28,7 @@ class Article(MPTTModel):
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     timestamp = models.DateTimeField(default=now)
     show_in_menu = models.BooleanField(default=False)
-    ## Is article available?
+    ## Is node available?
     available = models.BooleanField(default=True)
     content = models.TextField(default='', blank=True)
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
@@ -39,55 +37,57 @@ class Article(MPTTModel):
     
     def save(self, *args, **kwargs):
         self.slug = plugins.slugify(self.slug)
-        
-        if not self.slug and self.fmt.startswith('.'):
-            self.slug = self.fmt
-        
-        if self.fmt == '.pageconf':
-            self.slug = self.fmt
+        if self.type == '.conf':
+            self.slug = self.type
             self.available = False
             self.show_in_menu = False
         
         super().save(*args, **kwargs)
     
     @property
-    def pageconf(self):
+    def conf(self):
         '''
         Page attributes.
         '''
-        if not self._pageconf:
-            self._pageconf = self.get_children().filter(fmt='.pageconf').first()
-            if self._pageconf:
-                self._pageconf = self._pageconf.get_children().filter(available=True)
-                for item in self._pageconf:
+        if not self.__conf:
+            self.__conf = self.get_children().filter(type='.conf').first()
+            if self.__conf:
+                self.__conf = self.__conf.get_children()
+                for item in self.__conf:
                     ## Preparing content properties
                     name = plugins.slug2name(item.slug)
-                    if name:
-                        if item.fmt == '.property':
-                            if not hasattr(self._pageconf, name):
-                                value = item.content.strip()
+                    if item.type == 'property' and name:
+                        if not hasattr(self.__conf, name):
+                            value = item.content.strip()
+                            
+                            if not value:
+                                value = item.short.strip()
+                            
+                            if value:
+                                try:
+                                    value = json.loads(value)
+                                except:
+                                    pass
                                 
-                                if not value:
-                                    value = item.short.strip()
-                                
-                                if value:
-                                    try:
-                                        value = json.loads(value)
-                                    except:
-                                        pass
-                                    
-                                    setattr(self._pageconf, name, value)
-                        else:
-                            setattr(self._pageconf, name, item)
+                                setattr(self.__conf, name, value)
             else:
-                self._pageconf = ()
-        return self._pageconf
+                self.__conf = ()
+        return self.__conf
     
     def prop(self, name, default=None):
         '''
         Properties getter. Returns default value if property not exists.
         '''
-        return getattr(self.pageconf, name, default)
+        return getattr(self.conf, name, default)
+    
+    #def __get_prop(self, name, *args, **kwargs):
+    #    return super().__get__(name, *args, **kwargs)
+    
+    def render(self):
+        '''
+        Lazy content rendering
+        '''
+        return plugins.render(None, self)
     
     def get_absolute_url(self):
         '''
@@ -103,11 +103,11 @@ class Article(MPTTModel):
             #    slug = item['title']
             ## It was bad idea. It's better just to use id if slug is not defined.
             if not slug:
-                slug = str(item['id'])
+                slug = item['id']
             
-            slugs.append(plugins.slugify(slug))
+            slugs.append(slugify(slug, allow_unicode=True))
         
-        return reverse('messcms-article-by-path', kwargs={'path': '/'.join(slugs)})
+        return reverse('messycms-node-by-path', kwargs={'path': '/'.join(slugs)})
     
     
     def __str__(self):

@@ -58,7 +58,7 @@ class Migration(migrations.Migration):
       (
        'short', models.CharField(max_length=32)),
       (
-       'fmt', models.CharField(choices=[('htm', 'HTML')], default='htm', max_length=3, verbose_name='Type')),
+       'type', models.CharField(choices=[('htm', 'HTML')], default='htm', max_length=3, verbose_name='Type')),
       (
        'timestamp', models.DateTimeField(auto_now_add=True)),
       (

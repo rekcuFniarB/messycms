@@ -1,4 +1,4 @@
-from .models import Article
+from .models import Node
 from django.shortcuts import render
 from django.http import JsonResponse, Http404
 from django.core.exceptions import PermissionDenied
@@ -12,22 +12,22 @@ from . import plugins
 
 recursion = [0, 30] ## [count, max]
 
-## Show First article
+## Show First node
 def main(request):
     ''' Default ("/" URI) requet handler. '''
     recursion[0] = 0 ## reset counter
     
     if hasattr(settings, 'MAIN_ARTICLE'):
-        article = Article.objects.get(pk=settings.MAIN_ARTICLE)
+        node = Node.objects.get(pk=settings.MAIN_ARTICLE)
     else:
-        article = Article.objects.order_by('tree_id', 'level')[0]
-    article.content = parseTags(article, request)
-    return render(request, 'content.html', {'article': article})
-    #return JsonResponse(articles, safe=False)
+        node = Node.objects.order_by('tree_id', 'level')[0]
+    node.content = parseTags(node, request)
+    return render(request, 'content.html', {'node': node})
+    #return JsonResponse(nodes, safe=False)
 
-## get requested article
+## get requested node
 def show(request, id=0, path=''):
-    ''' /article/<int:id>/ request handler.'''
+    ''' /<str:path>/ request handler.'''
     
     if path:
         path_list = [x for x in path.split('/') if x]
@@ -36,7 +36,7 @@ def show(request, id=0, path=''):
         for path_part in path_list:
             if not objects:
                 ## First iteration
-                objects = Article.objects.filter(Q(pk=str2int(path_part)) | Q(slug=path_part))
+                objects = Node.objects.filter(Q(pk=str2int(path_part)) | Q(slug=path_part))
             else:
                 ## objects is QuerySet, it hasn't get_children() method
                 querysets = []
@@ -48,34 +48,34 @@ def show(request, id=0, path=''):
                     for queryset in querysets:
                         objects = objects | queryset
         
-        article = objects.first() ## or last()
+        node = objects.first() ## or last()
         
         last_slug = path_list[-1]
         
-        if not article:
-            raise Http404(f'Article {last_slug} not found')
+        if not node:
+            raise Http404(f'Node {last_slug} not found')
         
-        if article.id != str2int(last_slug) and article.slug != last_slug:
-            raise Http404(f'Got wrong article {article.id} {article.slug} while {last_slug} expected.')
+        if node.id != str2int(last_slug) and node.slug != last_slug:
+            raise Http404(f'Got wrong node {node.id} {node.slug} while {last_slug} expected.')
         
     elif id:
         try:
-           article = Article.objects.get(pk=id)
-        except Article.DoesNotExist:
-           raise Http404('Requested article with ID %s doesn not exists.' % id)
+           node = Node.objects.get(pk=id)
+        except Node.DoesNotExist:
+           raise Http404(f'Requested node with ID {id} does not exist.')
     else:
         raise Http404('Bad request, no page id or slug given.')
     
-    if article.fmt != 'html' or not article.available or article.slug.startswith('.'):
+    if node.type != 'html' or not node.available or node.slug.startswith('.'):
         raise PermissionDenied
     
-    if article.get_absolute_url().strip('/') != request.path.strip('/'):
+    if node.get_absolute_url().strip('/') != request.path.strip('/'):
         ## redirects to get_absolute_url() of model
-        return redirect(article)
+        return redirect(node)
     
-    #plugins.render_node(article, request)
+    #plugins.render(node, request)
     
-    return render(request, 'messcms/base.html', {'node': article})
+    return render(request, 'messycms/base.html', {'node': node})
 
 def str2int(string):
     try:

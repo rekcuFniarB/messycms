@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('MessCMS', '0005_auto_20210711_1424'),
+        ('MessyCMS', '0005_auto_20210711_1424'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='article',
-            name='fmt',
+            model_name='node',
+            name='type',
             field=models.CharField(choices=[('html', 'HTML')], default='html', max_length=32, verbose_name='Type'),
         ),
     ]

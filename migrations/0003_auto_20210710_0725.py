@@ -7,12 +7,12 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('MessCMS', '0002_auto_20200126_1642'),
+        ('MessyCMS', '0002_auto_20200126_1642'),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='article',
+            model_name='node',
             name='timestamp',
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),

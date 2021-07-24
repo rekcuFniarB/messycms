@@ -2,15 +2,15 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Article
+from .models import User, Node
 #from mptt.admin import MPTTModelAdmin
 from mptt.admin import DraggableMPTTAdmin
 
-#class ArticleAdmin(admin.ModelAdmin):
+#class NodeAdmin(admin.ModelAdmin):
     #readonly_fields = ('id',)
 
 admin.site.register(
-    Article,
+    Node,
     DraggableMPTTAdmin,
     list_display=(
         'tree_actions',
@@ -23,7 +23,7 @@ admin.site.register(
 	readonly_fields = ('id',)
 )
 
-#admin.site.register(Article, MPTTModelAdmin)
+#admin.site.register(Node, MPTTModelAdmin)
 
 admin.site.register(User, UserAdmin)
-#admin.site.register(Article)
+#admin.site.register(Node)

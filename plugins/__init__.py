@@ -19,7 +19,7 @@ def slugify(slug, *args, **kwargs):
 
 def slug2name(slug):
     '''
-    Turns string 'aaa-bbb-ccc' into 'AaaBbbCcc'
+    Turns string 'aaa-bbb-ccc' into 'aaaBbbCcc'
     '''
     
     parts = slug.split('-')
@@ -34,7 +34,7 @@ def get_list():
         ('items_list', 'Items list'),
         ('include_item', 'Inclue item'),
         ('.property', 'Property'),
-        ('.pageconf', 'Page conf'),
+        ('.conf', 'Node conf'),
         ('inclusion_point', 'Inclusion point'),
     )
 
@@ -42,7 +42,7 @@ def render(node, request=None, ready_blocks=None):
     if ready_blocks is None:
         ready_blocks = {}
     
-    if node.fmt.startswith('.'):
+    if node.type.startswith('.'):
         ## It's service type
         node.content = ''
         return node
@@ -55,13 +55,13 @@ def render(node, request=None, ready_blocks=None):
     
     available_plugins = dict(get_list())
     
-    if node.fmt in available_plugins: # {
+    if node.type in available_plugins: # {
         node.content += f'<!-- block {node.id} -->\n'
         
-        #if node.fmt in dir():
-        if hasattr(self, node.fmt): ## same as above
+        #if node.type in dir():
+        if hasattr(self, node.type): ## same as above
             ## Calling method from this module
-            result = getattr(self, node.fmt)(node, request)
+            result = getattr(self, node.type)(node, request)
             if result: # {
                 #if 'nodes' in result:
                 #    for _ in result['nodes']:
@@ -85,11 +85,11 @@ def render(node, request=None, ready_blocks=None):
         node.content += f'<!-- endblock {node.id} -->\n'
         
         ## Now rendering included nodes if exist
-        for block in node.pageconf:
+        for block in node.conf:
             node.content += render(block, request, ready_blocks).content
     # } endif plugin available
     
-    if node.link_id and node.fmt == 'html':
+    if node.link_id and node.type == 'html':
         ## Using node.link as parent template.
         ## We insert current node content into it.
         
@@ -104,14 +104,14 @@ def render(node, request=None, ready_blocks=None):
     return node
 
 def templates(block):
-    templatedir = 'messcms/blocks'
+    templatedir = 'messycms/blocks'
     
     ## So, we can get three templates:
     ##     type-class-item.html
     ##     type-class.html
     ##     type.html
     
-    block_type = slugify(block.fmt)
+    block_type = slugify(block.type)
     
     return (
         os.path.join(templatedir, f'{block_type}-{slugify(block.title)}.html'),
@@ -162,7 +162,7 @@ def include_item(block, request=None, *args, **kwargs):
     return result
 
 def inclusion_point(node, request, *args, **kwargs):
-    if node.fmt == 'inclusion_point':
+    if node.type == 'inclusion_point':
         id = node.parent.parent.id
     else:
         id = node.id

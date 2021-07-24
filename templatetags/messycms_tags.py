@@ -1,5 +1,5 @@
 from django import template
-from ..models import Article
+from ..models import Node
 from django.utils import safestring
 from .. import plugins
 
@@ -12,9 +12,9 @@ def path_by_id(id):
     '''
     path = '#'
     try:
-        article = Article.objects.get(pk=id)
-        path = article.path()
-    except Article.DoesNotExist:
+        node = Node.objects.get(pk=id)
+        path = node.path()
+    except Node.DoesNotExist:
         pass
     
     return safestring.mark_safe(path)
