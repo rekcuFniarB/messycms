@@ -145,7 +145,27 @@ def items_list(block, request=None, *args, **kwargs):
     if block.link:
         items = block.link.get_children().filter(available=True)
     else:
+        ## Using parent if no link defined
         items = block.parent.parent.get_children().filter(available=True)
+    
+    ## If block has "sort" property
+    sort = block.prop('sort')
+    if sort:
+        if type(sort) is list:
+            items = items.order_by(*sort)
+        else:
+            items = items.order_by(sort)
+    
+    ## If block has "limit" property
+    limit = block.prop('limit')
+    if limit:
+        if type(limit) is list:
+            if len(limit) > 1:
+                items = items[limit[0]:limit[1]]
+            else:
+                items = items[:limit[0]]
+        else:
+            items = items[:int(limit)]
     
     if items:
         result = {'templates': templates(block), 'nodes': items}

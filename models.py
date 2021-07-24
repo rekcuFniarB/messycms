@@ -56,7 +56,7 @@ class Node(MPTTModel):
                 for item in self.__conf:
                     ## Preparing content properties
                     name = plugins.slug2name(item.slug)
-                    if item.type == 'property' and name:
+                    if item.type == '.property' and name:
                         if not hasattr(self.__conf, name):
                             value = item.content.strip()
                             
