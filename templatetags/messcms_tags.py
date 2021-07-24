@@ -1,6 +1,7 @@
 from django import template
 from ..models import Article
 from django.utils import safestring
+from .. import plugins
 
 register = template.Library()
 
@@ -17,3 +18,9 @@ def path_by_id(id):
         pass
     
     return safestring.mark_safe(path)
+
+@register.simple_tag(takes_context=True)
+def render(context, node, *args, **kwargs):
+    plugins.render(node, context['request'])
+    return node.content
+

@@ -38,8 +38,7 @@ def get_list():
         ('inclusion_point', 'Inclusion point'),
     )
 
-
-def render_node(node, request=None, ready_blocks=None):
+def render(node, request=None, ready_blocks=None):
     if ready_blocks is None:
         ready_blocks = {}
     
@@ -64,18 +63,18 @@ def render_node(node, request=None, ready_blocks=None):
             ## Calling method from this module
             result = getattr(self, node.fmt)(node, request)
             if result: # {
-                if 'nodes' in result:
-                    for _ in result['nodes']:
-                        render_node(_, request, ready_blocks)
+                #if 'nodes' in result:
+                #    for _ in result['nodes']:
+                #        render_node(_, request, ready_blocks)
                 
                 if 'templates' in result:
                     node.content += render_to_string(
                         result['templates'],
                         {
                             ## Tree nodes
-                            'nodes': result['nodes'],
+                            'nodes': result.get('nodes', ()),
                             ## Page self
-                            'page': node
+                            'node': node
                         },
                         request
                     )
@@ -87,7 +86,7 @@ def render_node(node, request=None, ready_blocks=None):
         
         ## Now rendering included nodes if exist
         for block in node.pageconf:
-            node.content += render_node(block, request, ready_blocks).content
+            node.content += render(block, request, ready_blocks).content
     # } endif plugin available
     
     if node.link_id and node.fmt == 'html':
@@ -95,14 +94,13 @@ def render_node(node, request=None, ready_blocks=None):
         ## We insert current node content into it.
         
         ## Rendering parent template
-        render_node(node.link, request, ready_blocks)
+        render(node.link, request, ready_blocks)
         inclusion_point_string = inclusion_point(node.link, request)['content']
         if inclusion_point_string in node.link.content:
             node.content = node.link.content.replace(inclusion_point_string, node.content)
     
     ## TODO make it only if author is in staff group
     node.content = mark_safe(node.content)
-    
     return node
 
 def templates(block):

@@ -73,9 +73,9 @@ def show(request, id=0, path=''):
         ## redirects to get_absolute_url() of model
         return redirect(article)
     
-    plugins.render_node(article, request)
+    #plugins.render_node(article, request)
     
-    return render(request, 'messcms/base.html', {'page': article})
+    return render(request, 'messcms/base.html', {'node': article})
 
 def str2int(string):
     try:
