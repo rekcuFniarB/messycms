@@ -70,12 +70,7 @@ def render(node, request=None, ready_blocks=None):
                 if 'templates' in result:
                     node.content += render_to_string(
                         result['templates'],
-                        {
-                            ## Tree nodes
-                            'nodes': result.get('nodes', ()),
-                            ## Page self
-                            'node': node
-                        },
+                        result.get('context', {}),
                         request
                     )
                 
@@ -129,18 +124,24 @@ def items_tree(block, request=None, *args, **kwargs):
     '''
     Renders tree type block. TODO add menu support
     '''
-    result = None
+    result = {}
     if block.link:
         items = block.link.get_descendants().filter(available=True, *args, **kwargs)
         if items:
-            result = {'templates': templates(block), 'nodes': items}
+            result = {
+                'templates': templates(block),
+                'context': {
+                    'nodes': items,
+                    'node': block
+                }
+            }
     return result
 
 def items_list(block, request=None, *args, **kwargs):
     '''
     Renders one level list of items.
     '''
-    result = None
+    result = {}
     items = None
     if block.link:
         items = block.link.get_children().filter(available=True)
@@ -168,7 +169,13 @@ def items_list(block, request=None, *args, **kwargs):
             items = items[:int(limit)]
     
     if items:
-        result = {'templates': templates(block), 'nodes': items}
+        result = {
+            'templates': templates(block),
+            'context': {
+                'nodes': items,
+                'node': block
+            }
+        }
     
     return result
 
@@ -176,9 +183,15 @@ def include_item(block, request=None, *args, **kwargs):
     '''
     Renders one element.
     '''
-    result = None
+    result = {}
     if block.link and block.link.available:
-        result = {'templates': templates(block), 'nodes': [block.link]}
+        result = {
+            'templates': templates(block),
+            'context': {
+                'nodes': [block.link],
+                'node': block
+            }
+        }
     return result
 
 def inclusion_point(node, request, *args, **kwargs):
