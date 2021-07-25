@@ -35,7 +35,7 @@ class Node(MPTTModel):
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     ## Link to tree part, may be used in blocks
     link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
-    sites = models.ManyToManyField(Site)
+    sites = models.ManyToManyField(Site, null=True, blank=True)
     
     context = {}
     
