@@ -58,6 +58,16 @@ def render(node, request):
     
     available_plugins = dict(get_list())
     
+    inclusion_point_string = ''
+    if node.link_id and node.link_id not in request.CACHE['rendered'] and node.type == 'html':
+        ## Using node.link as parent template.
+        ## We insert current node content into it in the end of this function.
+        
+        ## Rendering parent template
+        render(node.link, request)
+        inclusion_point_string = inclusion_point(node.link, request)['content']
+    
+    
     if node.type in available_plugins: # {
         node.content += f'<!-- block {node.id} -->\n'
         
@@ -111,15 +121,9 @@ def render(node, request):
             node.content += render(block, request).content
     # } endif plugin available
     
-    if node.link_id and node.link_id not in request.CACHE['rendered'] and node.type == 'html':
-        ## Using node.link as parent template.
-        ## We insert current node content into it.
-        
-        ## Rendering parent template
-        render(node.link, request)
-        inclusion_point_string = inclusion_point(node.link, request)['content']
-        if inclusion_point_string in node.link.content:
-            node.content = node.link.content.replace(inclusion_point_string, node.content)
+    if inclusion_point_string and inclusion_point_string in node.link.content:
+        ## Inserting current node content into parent template node and replacing this with that.
+        node.content = node.link.content.replace(inclusion_point_string, node.content)
     
     ## TODO make it only if author is in staff group
     node.content = mark_safe(node.content)
