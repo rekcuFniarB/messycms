@@ -54,7 +54,11 @@ class Node(MPTTModel):
         Page attributes.
         '''
         if not self.__conf:
-            self.__conf = self.get_children().filter(type='.conf').first()
+            #self.__conf = self.get_children().filter(type='.conf').first()
+            ## For some strange reason above method sometimes returns None
+            ## when this function is invoked from template.
+            self.__conf = Node.objects.filter(parent_id=self.id, type='.conf').first()
+            
             if self.__conf:
                 self.__conf = self.__conf.get_children()
                 for item in self.__conf:
@@ -78,6 +82,7 @@ class Node(MPTTModel):
                         setattr(self.__conf, name, item)
             else:
                 self.__conf = ()
+            
         return self.__conf
     
     def prop(self, name, default=None):
@@ -102,25 +107,27 @@ class Node(MPTTModel):
         ancestors = self.get_ancestors(include_self=True).values()
         slugs = []
         for item in ancestors:
-            slug = item['slug']
-            #if not slug:
-            #    slug = item['menu_title']
-            #if not slug:
-            #    slug = item['title']
-            ## It was bad idea. It's better just to use id if slug is not defined.
-            if not slug:
-                slug = item['id']
-            
-            slugs.append(slugify(slug, allow_unicode=True))
+            ## Skipping root directory because it used for site root.
+            if item['parent_id']:
+                slug = item['slug']
+                
+                if not slug:
+                    slug = item['id']
+                
+                slugs.append(slugify(slug, allow_unicode=True))
         
-        return reverse('messycms-node-by-path', kwargs={'path': '/'.join(slugs)})
-    
+        if len(slugs):
+            reverse_url = reverse('messycms-node-by-path', kwargs={'path': '/'.join(slugs)})
+        else:
+            reverse_url = reverse('messycms-root-path')
+        
+        return reverse_url
     
     def __str__(self):
         '''
         Text representation for list in admin interfase
         '''
-        if self.slug.startswith('.'):
+        if self.slug.startswith('.') or self.type.startswith('.'):
             return self.slug
         else:
             return '%s: %s' % (self.id, self.title or self.menu_title or self.short or self.slug)

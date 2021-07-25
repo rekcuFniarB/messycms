@@ -10,21 +10,6 @@ from django.db.models import Q
 from django.shortcuts import redirect
 from . import plugins
 
-recursion = [0, 30] ## [count, max]
-
-## Show First node
-def main(request):
-    ''' Default ("/" URI) requet handler. '''
-    recursion[0] = 0 ## reset counter
-    
-    if hasattr(settings, 'MAIN_ARTICLE'):
-        node = Node.objects.get(pk=settings.MAIN_ARTICLE)
-    else:
-        node = Node.objects.order_by('tree_id', 'level')[0]
-    node.content = parseTags(node, request)
-    return render(request, 'content.html', {'node': node})
-    #return JsonResponse(nodes, safe=False)
-
 ## get requested node
 def show(request, id=0, path=''):
     ''' /<str:path>/ request handler.'''
@@ -64,7 +49,10 @@ def show(request, id=0, path=''):
         except Node.DoesNotExist:
            raise Http404(f'Requested node with ID {id} does not exist.')
     else:
-        raise Http404('Bad request, no page id or slug given.')
+        ## Main page requested
+        node = Node.objects.filter(sites__id=request.site.id).first()
+        if not node:
+            raise Http404(f'Main page for requested site {request.site} not found.')
     
     if node.type != 'html' or not node.available or node.slug.startswith('.'):
         raise PermissionDenied
