@@ -86,18 +86,22 @@ def render(node, request):
         # } ## endif there is method
         else: # {
             ## Try to include template if exists
-            try:
-                node.content += render_to_string(
-                    templates(node),
-                    {
-                        'node': request.CACHE['rendered'].get(node.parent.parent_id, node.parent.parent)
-                    },
-                    request
-                )
-            except TemplateDoesNotExist:
-                pass
-            except AttributeError:
-                pass
+            if node.parent_id:
+                try:
+                    node.content += render_to_string(
+                        templates(node),
+                        {
+                            'node': request.CACHE['rendered'].get(node.parent.parent_id, node.parent.parent)
+                        },
+                        request
+                    )
+                except TemplateDoesNotExist:
+                    pass
+                except AttributeError:
+                    if settings.DEBUG:
+                        raise
+                    else:
+                        pass ## 'NoneType' object has no attribute 'parent_id'
         # }
         
         node.content += f'<!-- endblock {node.id} -->\n'
