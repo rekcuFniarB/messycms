@@ -99,7 +99,7 @@ def render(node, request):
             if node.parent_id:
                 try:
                     node.content += render_to_string(
-                        templates(node),
+                        templates(node, request),
                         {
                             'node': request.CACHE['rendered'].get(node.parent.parent_id, node.parent.parent)
                         },
@@ -129,7 +129,7 @@ def render(node, request):
     node.content = mark_safe(node.content)
     return node
 
-def templates(block):
+def templates(block, request=None):
     templatedir = 'messycms/blocks'
     
     ## So, we can get three templates:
@@ -139,14 +139,21 @@ def templates(block):
     
     block_type = slugify(block.type)
     
-    return (
+    templates = [
         os.path.join(templatedir, f'{block_type}-{slugify(block.title)}.html'),
         os.path.join(templatedir, f'{block_type}-{slugify(block.slug)}.html'),
         os.path.join(templatedir, f'{block_type}-{slugify(block.short)}.html'),
-        #os.path.join(templatedir, f'{block_type}-test.html'),
         os.path.join(templatedir, f'{slugify(block.slug)}.html'),
         os.path.join(templatedir, f'{block_type}.html'),
-    )
+    ]
+    
+    if request and hasattr(request, 'site'):
+        ## Also adding variants for current domain
+        ## e.g. domain/messcms/blocks/
+        for path in reversed(templates[:]):
+            templates.insert(0, os.path.join(request.site.domain, templatedir, path))
+    
+    return templates
 
 ## This module contains some basic plugins.
 ## Additional plugins may be placed inside this module dirs.
@@ -161,7 +168,7 @@ def items_tree(block, request=None, *args, **kwargs):
         items = block.link.get_descendants().filter(available=True, *args, **kwargs)
         if items:
             result = {
-                'templates': templates(block),
+                'templates': templates(block, request),
                 'context': {
                     'nodes': items,
                     'node': block
@@ -210,7 +217,7 @@ def items_list(block, request=None, *args, **kwargs):
     
     if items:
         result = {
-            'templates': templates(block),
+            'templates': templates(block, request),
             'context': {
                 'nodes': items,
                 'node': block
@@ -226,7 +233,7 @@ def include_item(block, request=None, *args, **kwargs):
     result = {}
     if block.link and block.link.available:
         result = {
-            'templates': templates(block),
+            'templates': templates(block, request),
             'context': {
                 'nodes': [block.link],
                 'node': block

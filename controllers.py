@@ -2,7 +2,7 @@ from .models import Node
 from django.shortcuts import render
 from django.http import JsonResponse, Http404
 from django.core.exceptions import PermissionDenied
-from pprint import pprint
+#from pprint import pprint
 import re
 import os
 from django.conf import settings
@@ -63,7 +63,14 @@ def show(request, id=0, path=''):
     
     #plugins.render(node, request)
     
-    return render(request, 'messycms/base.html', {'node': node})
+    return render(
+        request,
+        (
+            f'{request.site.domain}/messycms/base.html',
+            'messycms/base.html',
+        ),
+        {'node': node}
+    )
 
 def str2int(string):
     try:
