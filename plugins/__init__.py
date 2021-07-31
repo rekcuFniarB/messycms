@@ -4,6 +4,7 @@ from django.template import TemplateDoesNotExist
 from django.utils import text
 from django.utils.safestring import mark_safe
 from django.conf import settings
+from django.urls import resolve
 
 self = sys.modules[__name__]
 DEBUG = False #settings.DEBUG
@@ -37,6 +38,7 @@ def get_list():
         ('.property', 'Property'),
         ('.conf', 'Node conf'),
         ('inclusion_point', 'Inclusion point'),
+        ('render_view', 'Render view'),
     )
 
 def render(node, request):
@@ -248,3 +250,10 @@ def inclusion_point(node, request, *args, **kwargs):
         id = node.id
     
     return {'content': f'<template data-id="{id}"></template>'}
+
+def render_view(node, request, *args, **kwargs):
+    if node.short:
+        resolved = resolve(node.short)
+        response = resolved.func(request, **resolved.kwargs)
+        node.content += response.content.decode(response.charset)
+    return {}

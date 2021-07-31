@@ -1,0 +1,23 @@
+{# extends "base.html" #}
+{% load mptt_tags %}
+
+{% block title %}{{ node.name }}{% endblock %}
+
+{% block main %}
+<h2>{{ node.name }}</h2>
+
+{% recursetree nodes %}
+    <figure id="{{ node.id }}">
+        <img src="{{ node.image.url }}" alt="{{ node.alt }}">
+        <p>{{ node.name }}</p>
+    </figure>
+
+{% if not node.is_leaf_node %}
+    <div class="children">
+        {{ children }}
+    </div><!-- .children -->
+{% endif %}
+
+{% endrecursetree %}
+
+{% endblock %}
