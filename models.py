@@ -81,6 +81,9 @@ class Node(MPTTModel):
                                     pass
                                 
                                 setattr(self.__conf, name, value)
+                            elif item.link_id:
+                                setattr(self.__conf, name, item.link)
+                            
                     elif not hasattr(self.__conf, name):
                         setattr(self.__conf, name, item)
             else:

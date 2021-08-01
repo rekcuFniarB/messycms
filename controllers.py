@@ -84,6 +84,15 @@ def show(request, id=0, path=''):
         ## redirects to real path if node was moved.
         return redirect(node)
     
+    ## If node has redirect property
+    if hasattr(node.conf, 'redirect'):
+        ## If it's a link to another node
+        if hasattr(node.conf.redirect, 'link_id') and node.conf.redirect.link_id:
+            return redirect(node.conf.redirect.link)
+        ## If it's a string URL
+        elif node.conf.redirect:
+            return redirect(node.conf.redirect)
+    
     #plugins.render(node, request)
     
     return render(
