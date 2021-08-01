@@ -29,7 +29,7 @@ class Node(MPTTModel):
         default = plugins.get_list()[0][0],
         verbose_name = 'Type'
     )
-    author = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    author = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
     timestamp = models.DateTimeField(default=now)
     show_in_menu = models.BooleanField(default=False)
     ## Is node available?
