@@ -2,6 +2,7 @@ from django import template
 from ..models import Node
 from django.utils import safestring
 from .. import plugins
+from django.urls import resolve
 
 register = template.Library()
 
@@ -24,3 +25,8 @@ def render(context, node, *args, **kwargs):
     plugins.render(node, context['request'])
     return node.content
 
+@register.simple_tag(takes_context=True)
+def render_view(context, path, *args, **kwargs):
+    resolved = resolve(path)
+    response = resolved.func(context['request'], **resolved.kwargs)
+    return safestring.mark_safe(response.content.decode(response.charset))
