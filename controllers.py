@@ -77,7 +77,7 @@ def show(request, id=0, path=''):
         if not node:
             raise Http404(f'Main page for requested site {request.site} not found.')
     
-    if node.type != 'html' or not node.available or node.slug.startswith('.'):
+    if node.type != 'content' or not node.available or node.slug.startswith('.'):
         raise PermissionDenied
     
     if node.get_absolute_url().strip('/') != request.path.strip('/'):

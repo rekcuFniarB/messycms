@@ -31,7 +31,7 @@ def slug2name(slug):
 def get_list():
     ## TODO add support of project local plugins
     return (
-        ('html', 'HTML'),
+        ('content', 'Content'),
         ('items_tree', 'Items tree'),
         ('items_list', 'Items list'),
         ('include_item', 'Inclue item'),
@@ -61,7 +61,7 @@ def render(node, request):
     available_plugins = dict(get_list())
     
     inclusion_point_string = ''
-    if node.link_id and node.link_id not in request.CACHE['rendered'] and node.type == 'html':
+    if node.link_id and node.link_id not in request.CACHE['rendered'] and node.type == 'content':
         ## Using node.link as parent template.
         ## We insert current node content into it in the end of this function.
         
