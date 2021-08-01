@@ -5,6 +5,7 @@ from . import tgupload
 import os
 from django.core.exceptions import SuspiciousFileOperation
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 class RemoteFieldFile(FieldFile):
     ## Overriding property
@@ -23,6 +24,7 @@ class TGImages(MPTTModel):
     description = models.TextField(default='', blank=True)
     image = RemoteImageField(upload_to='uploads', max_length=255, null=True, blank=True, db_column='image')
     parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    author = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, blank=True, null=True)
     
     def save(self, *args, **kwargs):
         try:
