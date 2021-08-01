@@ -50,6 +50,14 @@ class Node(MPTTModel):
             self.show_in_menu = False
         
         super().save(*args, **kwargs)
+        
+        ## If no site defined for node
+        ## TODO it doesn't work here
+        #if not self.sites.all():
+        #    ## If have parent and parent has site defined
+        #    if self.parent_id and self.parent.sites.all():
+        #        ## Inherit parent node sites
+        #        self.sites.add(*self.parent.sites.all())
     
     @property
     def conf(self):
