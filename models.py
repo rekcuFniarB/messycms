@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth import get_user_model
 from mptt.models import MPTTModel, TreeForeignKey
 from django.utils.timezone import now
 from django.utils.text import slugify
@@ -8,8 +9,10 @@ from django.urls import reverse
 from . import plugins
 import json
 
-class User(AbstractUser):
-    pass
+AUTH_USER_MODEL = get_user_model()
+
+#class User(AbstractUser):
+    #pass
 
 class Node(MPTTModel):
     __conf = None
@@ -26,7 +29,7 @@ class Node(MPTTModel):
         default = plugins.get_list()[0][0],
         verbose_name = 'Type'
     )
-    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    author = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     timestamp = models.DateTimeField(default=now)
     show_in_menu = models.BooleanField(default=False)
     ## Is node available?

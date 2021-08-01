@@ -1,8 +1,8 @@
 # Register your models here.
 
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from .models import User, Node
+#from django.contrib.auth.admin import UserAdmin
+from .models import Node
 #from mptt.admin import MPTTModelAdmin
 from mptt.admin import DraggableMPTTAdmin
 
@@ -20,10 +20,10 @@ admin.site.register(
     list_display_links=(
         'indented_title',
     ),
-	readonly_fields = ('id',)
+    readonly_fields = ('id',)
 )
 
 #admin.site.register(Node, MPTTModelAdmin)
 
-admin.site.register(User, UserAdmin)
+#admin.site.register(User, UserAdmin)
 #admin.site.register(Node)
