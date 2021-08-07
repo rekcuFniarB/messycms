@@ -36,10 +36,10 @@ else:
         title = models.CharField(max_length=255, default='', blank=True)
         ## Custom title to show in menu
         menu_title = models.CharField(max_length=255, default='', blank=True)
+        slug = models.CharField(max_length=255, default='', blank=True)
         short = models.CharField(max_length=255, default='', blank=True)
         ## Not not using SlugField and not making it unique because it may appear with same name in 
         ## different tree level. Instead we prepare it in self.save().
-        slug = models.CharField(max_length=255, default='', blank=True)
         type = models.CharField(
             max_length = 32,
             choices = plugins.get_list(),

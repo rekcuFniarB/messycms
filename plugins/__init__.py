@@ -1,6 +1,6 @@
 import sys, os
-from django.template.loader import render_to_string
-from django.template import TemplateDoesNotExist
+from django.template.loader import render_to_string as dj_render_to_string
+from django.template import TemplateDoesNotExist, Template, Context
 from django.utils import text
 from django.utils.safestring import mark_safe
 from django.conf import settings
@@ -83,11 +83,10 @@ def render(node, request):
                 #    for _ in result['nodes']:
                 #        render_node(_, request)
                 
-                node.context = result.get('context', {})
-                node.context['test'] = node.id
                 if 'templates' in result:
                     node.content += render_to_string(
                         result['templates'],
+                        getattr(node.conf, 'template', ''),
                         node.context,
                         request
                     )
@@ -97,23 +96,16 @@ def render(node, request):
             # } endif result
         # } ## endif there is method
         else: # {
-            ## Try to include template if exists
-            if node.parent_id:
-                try:
-                    node.content += render_to_string(
-                        templates(node, request),
-                        {
-                            'node': request.CACHE['rendered'].get(node.parent.parent_id, node.parent.parent)
-                        },
-                        request
-                    )
-                except TemplateDoesNotExist:
-                    pass
-                except AttributeError:
-                    if settings.DEBUG:
-                        raise
-                    else:
-                        pass ## 'NoneType' object has no attribute 'parent_id'
+            ## If current node is a section for some node
+            if node.parent_id and node.parent.type == '.conf' and node.author.is_staff:
+                ## This will add a section to owning node using slug as template
+                ## name and rendered with parent context
+                node.content = render_to_string(
+                    templates(node, request),
+                    node.content,
+                    {'node': request.CACHE['rendered'].get(node.parent.parent_id, node.parent.parent)},
+                    request
+                )
         # }
         
         node.content += f'<!-- endblock {node.id} -->\n'
@@ -127,8 +119,8 @@ def render(node, request):
         ## Inserting current node content into parent template node and replacing this with that.
         node.content = node.link.content.replace(inclusion_point_string, node.content)
     
-    ## TODO make it only if author is in staff group
-    node.content = mark_safe(node.content)
+    if node.author.is_staff:
+        node.content = mark_safe(node.content)
     return node
 
 def templates(block, request=None):
@@ -140,8 +132,11 @@ def templates(block, request=None):
     ##     type.html
     
     block_type = slugify(block.type)
+    template_name = slugify(getattr(block.conf, 'template', ''))
     
     templates = [
+        os.path.join(templatedir, f'{block_type}-{template_name}.html'),
+        os.path.join(templatedir, f'{template_name}.html'),
         os.path.join(templatedir, f'{block_type}-{slugify(block.title)}.html'),
         os.path.join(templatedir, f'{block_type}-{slugify(block.slug)}.html'),
         os.path.join(templatedir, f'{block_type}-{slugify(block.short)}.html'),
@@ -156,6 +151,27 @@ def templates(block, request=None):
             templates.insert(0, os.path.join(request.site.domain, templatedir, path))
     
     return templates
+
+def render_to_string (templates=[], template='', context={}, request=None):
+    '''
+    Renders template to string.
+    If `template` is not empty, using it as string template, else using
+    `templates` list as file based templates.
+    Other attrs:
+        `context`, `request`
+    '''
+    result = ''
+    if template:
+        tpl = Template(template)
+        result = tpl.render(Context(context))
+    
+    if templates:
+        try:
+            result += dj_render_to_string(templates, context, request)
+        except TemplateDoesNotExist:
+            pass
+    
+    return result
 
 ## This module contains some basic plugins.
 ## Additional plugins may be placed inside this module dirs.
@@ -176,6 +192,7 @@ def items_tree(block, request=None, *args, **kwargs):
                     'node': block
                 }
             }
+            block.context.update(result['context'])
     return result
 
 def items_list(block, request=None, *args, **kwargs):
@@ -225,6 +242,7 @@ def items_list(block, request=None, *args, **kwargs):
                 'node': block
             }
         }
+        block.context.update(result['context'])
     
     return result
 
@@ -241,6 +259,7 @@ def include_item(block, request=None, *args, **kwargs):
                 'node': block
             }
         }
+        block.context.update(result['context'])
     return result
 
 def inclusion_point(node, request, *args, **kwargs):
