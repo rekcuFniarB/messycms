@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.sites.models import Site
 #from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
@@ -8,6 +9,7 @@ from django.utils.text import slugify
 from django.urls import reverse
 from . import plugins
 import json
+import importlib
 
 AUTH_USER_MODEL = get_user_model()
 
@@ -83,14 +85,25 @@ class Node(MPTTModel):
                                 value = item.short.strip()
                             
                             if value:
-                                try:
-                                    value = json.loads(value)
-                                except:
-                                    pass
+                                if '=' in value:
+                                    parsed_model = value.split('=')
+                                    try:
+                                        value = self.get_from_model(parsed_model[0], int(parsed_model[1]))
+                                    except:
+                                        pass
+                                
+                                if (type(value) is str):
+                                    ## Try interpret value as JSON
+                                    try:
+                                        value = json.loads(value)
+                                    except:
+                                        pass
                                 
                                 setattr(self.__conf, name, value)
                             elif item.link_id:
                                 setattr(self.__conf, name, item.link)
+                            else:
+                                setattr(self.__conf, name, None)
                             
                     elif not hasattr(self.__conf, name):
                         setattr(self.__conf, name, item)
@@ -136,6 +149,30 @@ class Node(MPTTModel):
             reverse_url = reverse('messycms-root-path')
         
         return reverse_url
+    
+    def get_from_model(self, model_name, id):
+        if type(model_name) is str:
+            model_defined = False
+            for app in settings.INSTALLED_APPS:
+                ## Check if model is listed in installed apps
+                if app in model_name:
+                    model_defined = True
+                    break
+            if model_defined:
+                _model_name = model_name.split('.')
+                ## Expected value of model_name is "app.models.entity"
+                entity_name = _model_name.pop()
+                model_name = '.'.join(_model_name)
+                model = getattr(importlib.import_module(model_name), entity_name)
+            else:
+                if self:
+                    raise self.DoesNotExist(f'No installed app for model {model_name}')
+                else:
+                    raise BaseException(f'No installed app for model {model_name}')
+        else:
+            model = model_name
+        
+        return model.objects.get(pk=id)
     
     def __str__(self):
         '''
