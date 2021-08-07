@@ -21,9 +21,6 @@ def show(request, id=0, path=''):
         ## Get root for requested domain
         objects = Node.objects.filter(parent_id=None, sites__id=request.site.id)
         
-        #for path_part in path_list:
-            
-        
         for path_part in path_list:
             if not objects:
                 ## First iteration
@@ -77,7 +74,7 @@ def show(request, id=0, path=''):
         if not node:
             raise Http404(f'Main page for requested site {request.site} not found.')
     
-    if node.type != 'content' or not node.available or node.slug.startswith('.'):
+    if node.type != 'content' or not node.available or node.slug.startswith('.') or (node.parent_id and node.parent.type == '.conf'):
         raise PermissionDenied
     
     if node.get_absolute_url().strip('/') != request.path.strip('/'):
