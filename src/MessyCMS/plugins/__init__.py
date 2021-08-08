@@ -71,7 +71,8 @@ def render(node, request):
     
     
     if node.type in available_plugins: # {
-        node.content += f'<!-- block {node.id} -->\n'
+        if settings.DEBUG:
+            node.content = f'<!-- block {node.id} -->\n{node.content}'
         
         ## If there is method
         #if node.type in dir():
@@ -108,7 +109,8 @@ def render(node, request):
                 )
         # }
         
-        node.content += f'<!-- endblock {node.id} -->\n'
+        if settings.DEBUG:
+            node.content += f'\n<!-- endblock {node.id} -->\n'
         
         ## Now rendering included nodes if exist
         for block in node.conf:
