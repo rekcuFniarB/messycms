@@ -133,16 +133,19 @@ def templates(block, request=None):
     ##     type-class.html
     ##     type.html
     
-    block_type = slugify(block.type)
-    template_name = slugify(getattr(block.conf, 'template', ''))
+    block_type = slugify(block.type).strip('.')
+    template_name = slugify(getattr(block.conf, 'template', '')).strip('.')
+    block_title = slugify(block.title).strip('.')
+    block_slug = slugify(block.slug).strip('.')
+    block_short = slugify(block.short).strip('.')
     
     templates = [
         os.path.join(templatedir, f'{block_type}-{template_name}.html'),
         os.path.join(templatedir, f'{template_name}.html'),
-        os.path.join(templatedir, f'{block_type}-{slugify(block.title)}.html'),
-        os.path.join(templatedir, f'{block_type}-{slugify(block.slug)}.html'),
-        os.path.join(templatedir, f'{block_type}-{slugify(block.short)}.html'),
-        os.path.join(templatedir, f'{slugify(block.slug)}.html'),
+        os.path.join(templatedir, f'{block_type}-{block_title}.html'),
+        os.path.join(templatedir, f'{block_type}-{block_slug}.html'),
+        os.path.join(templatedir, f'{block_type}-{block_short}.html'),
+        os.path.join(templatedir, f'{block_slug}.html'),
         os.path.join(templatedir, f'{block_type}.html'),
     ]
     
@@ -150,7 +153,7 @@ def templates(block, request=None):
         ## Also adding variants for current domain
         ## e.g. domain/messcms/blocks/
         for path in reversed(templates[:]):
-            templates.insert(0, os.path.join(request.site.domain, templatedir, path))
+            templates.insert(0, os.path.join(request.site.domain, path))
     
     return templates
 
