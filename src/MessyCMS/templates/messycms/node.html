@@ -13,13 +13,5 @@
 
 
 {% block body %}
-    {% include node %}
-    
-    {% for section in node.conf %}
-        {% if section.type == 'inclusion_point' and node.context.include %}
-            {% include node.context.include %}
-        {% elif not section.is_template_block %}
-            {% include section %}
-        {% endif %}
-    {% endfor %}
+    {% include "messycms/_node.html" with node=node %}
 {% endblock body %}
