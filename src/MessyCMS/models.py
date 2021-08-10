@@ -191,6 +191,12 @@ else:
             '''
             return self.slug.strip('.').startswith('template-block-')
         
+        def children_count(self):
+            '''
+            Real children count, ignores non content type nodes.
+            '''
+            return self.get_children().filter(type='content').count()
+        
         def __str__(self):
             '''
             Text representation for list in admin interfase

@@ -56,19 +56,21 @@ def render(node, requestContext):
         ## If there is method
         #if node.type in dir():
         if hasattr(self, node.type): ## same as above {
-            rendered_string += node.content
+            #rendered_string += node.content
             ## Calling method from this module
             result = getattr(self, node.type)(node, requestContext.request)
             if result: # {
                 rendered_string += render_to_string(
+                    ## file based list of templates to try
                     result.get('templates', ()),
-                    getattr(node.conf, 'template', ''),
+                    ## db based template
+                    getattr(node.conf, 'template', node.content),
                     node.context,
                     requestContext.request
                 )
                 
-                if 'content' in result:
-                    rendered_string += result['content']
+                #if 'content' in result:
+                    #rendered_string += result['content']
             ## } endif result
         ## }  endif there is plugin method
         else: ## { No method for this node type
@@ -157,18 +159,28 @@ def render_to_string(templates=[], template='', context={}, request=None):
     Other attrs:
         `context`, `request`
     '''
+    
     result = ''
     
-    if templates:
+    if template:
         try:
-            result += dj_render_to_string(templates, context, request)
-        except TemplateDoesNotExist:
-            pass
-            #raise
+            tpl = Template(template)
+            db_tpl_render = tpl.render(Context(context))
+            if db_tpl_render != template:
+                ## if not equal, it means that it contained a template code.
+                result = db_tpl_render
+        except:
+            if settings.DEBUG:
+                raise
     
-    if template and not result:
-        tpl = Template(template)
-        result = tpl.render(Context(context))
+    if not result and templates:
+        try:
+            result = dj_render_to_string(templates, context, request)
+        except TemplateDoesNotExist:
+            pass ## just ignoring, it's ok if template file is not defined.
+    
+    if not result:
+        result = template
     
     return result
 
