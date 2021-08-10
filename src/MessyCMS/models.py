@@ -46,6 +46,7 @@ else:
             default = plugins.get_list()[0][0],
             verbose_name = 'Type'
         )
+        node_class = models.CharField(max_length=255, default='', blank=True)
         author = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
         timestamp = models.DateTimeField(default=now)
         show_in_menu = models.BooleanField(default=False)
@@ -61,6 +62,8 @@ else:
         
         def save(self, *args, **kwargs):
             self.slug = plugins.slugify(self.slug)
+            self.node_class = plugins.slugify(self.node_class)
+            
             if self.type == '.conf':
                 self.slug = self.type
                 self.available = False

@@ -83,6 +83,7 @@ def render(node, requestContext):
                     requestContext.request
                 )
             elif node.author.is_staff:
+                node.content = mark_safe(node.content)
                 rendered_string += render_to_string(
                     templates(node, requestContext.request),
                     node.content,
@@ -126,6 +127,7 @@ def templates(block, request=None):
     block_title = slugify(block.title).strip('.')
     block_slug = slugify(block.slug).strip('.')
     block_short = slugify(block.short).strip('.')
+    block_class = slugify(block.node_class).strip('.')
     
     templates = [
         os.path.join(templatedir, f'{block_type}-{template_name}.html'),
@@ -133,7 +135,9 @@ def templates(block, request=None):
         os.path.join(templatedir, f'{block_type}-{block_title}.html'),
         os.path.join(templatedir, f'{block_type}-{block_slug}.html'),
         os.path.join(templatedir, f'{block_type}-{block_short}.html'),
+        os.path.join(templatedir, f'{block_type}-{block_class}.html'),
         os.path.join(templatedir, f'{block_slug}.html'),
+        os.path.join(templatedir, f'{block_class}.html'),
         os.path.join(templatedir, f'{block_type}.html'),
     ]
     
@@ -154,9 +158,6 @@ def render_to_string(templates=[], template='', context={}, request=None):
         `context`, `request`
     '''
     result = ''
-    if template:
-        tpl = Template(template)
-        result = tpl.render(Context(context))
     
     if templates:
         try:
@@ -164,6 +165,10 @@ def render_to_string(templates=[], template='', context={}, request=None):
         except TemplateDoesNotExist:
             pass
             #raise
+    
+    if template and not result:
+        tpl = Template(template)
+        result = tpl.render(Context(context))
     
     return result
 
