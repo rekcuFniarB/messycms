@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ block.super }}
+    {% if node.conf.templateBlockHtmlHead %}
+        {% include node.conf.templateBlockHtmlHead %}
+    {% endif %}
+{% endblock head %}
+
+{% block title %}{{ block.super }}{% if node.context.include %}{{ node.context.include.title }}{% else %}{{ node.title }}{% endif %}{% endblock title %}
+
+{% block h1 %}{{ block.super }}{% if node.context.include %}{{ node.context.include.title }}{% else %}{{ node.title }}{% endif %}{% endblock h1 %}
+
+
+{% block body %}
+    {% include node %}
+    
+    {% for section in node.conf %}
+        {% if section.type == 'inclusion_point' and node.context.include %}
+            {% include node.context.include %}
+        {% elif not section.is_template_block %}
+            {% include section %}
+        {% endif %}
+    {% endfor %}
+{% endblock body %}

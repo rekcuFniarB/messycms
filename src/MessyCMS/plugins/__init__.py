@@ -41,89 +41,77 @@ def get_list():
         ('render_view', 'Render view'),
     )
 
-def render(node, request):
-    if not hasattr(request, 'CACHE'):
-        setattr(request, 'CACHE', {})
-    if 'rendered' not in request.CACHE:
-        request.CACHE['rendered'] = {}
-    
-    if node.id in request.CACHE['rendered']:
-        ## already processed
-        node.content = request.CACHE['rendered'][node.id].content
-        return node
-    request.CACHE['rendered'][node.id] = node
-    
+def render(node, requestContext):
     if node.type.startswith('.'):
         ## It's service type
-        node.content = ''
-        return node
+        return ''
     
     available_plugins = dict(get_list())
     
-    inclusion_point_string = ''
-    if node.link_id and node.link_id not in request.CACHE['rendered'] and node.type == 'content':
-        ## Using node.link as parent template.
-        ## We insert current node content into it in the end of this function.
-        
-        ## Rendering parent template
-        render(node.link, request)
-        inclusion_point_string = inclusion_point(node.link, request)['content']
-    
+    rendered_string = ''
+    if settings.DEBUG:
+        rendered_string = f'<!-- block id: {node.id}; type: {node.type} -->\n'
     
     if node.type in available_plugins: # {
-        if settings.DEBUG:
-            node.content = f'<!-- block {node.id} -->\n{node.content}'
-        
         ## If there is method
         #if node.type in dir():
         if hasattr(self, node.type): ## same as above {
+            rendered_string += node.content
             ## Calling method from this module
-            result = getattr(self, node.type)(node, request)
+            result = getattr(self, node.type)(node, requestContext.request)
             if result: # {
-                #if 'nodes' in result:
-                #    for _ in result['nodes']:
-                #        render_node(_, request)
-                
-                if 'templates' in result:
-                    node.content += render_to_string(
-                        result['templates'],
-                        getattr(node.conf, 'template', ''),
-                        node.context,
-                        request
-                    )
+                rendered_string += render_to_string(
+                    result.get('templates', ()),
+                    getattr(node.conf, 'template', ''),
+                    node.context,
+                    requestContext.request
+                )
                 
                 if 'content' in result:
-                    node.content += result['content']
-            # } endif result
-        # } ## endif there is method
-        else: # {
-            ## If current node is a section for some node
+                    rendered_string += result['content']
+            ## } endif result
+        ## }  endif there is plugin method
+        else: ## { No method for this node type
+            ## If current node is a section of some node
             if node.parent_id and node.parent.type == '.conf' and node.author.is_staff:
                 ## This will add a section to owning node using slug as template
                 ## name and rendered with parent context
-                node.content = render_to_string(
-                    templates(node, request),
+                rendered_string += render_to_string(
+                    templates(node, requestContext.request),
                     node.content,
-                    {'node': request.CACHE['rendered'].get(node.parent.parent_id, node.parent.parent)},
-                    request
+                    {'node': node.parent.parent},
+                    requestContext.request
                 )
-        # }
-        
-        if settings.DEBUG:
-            node.content += f'\n<!-- endblock {node.id} -->\n'
-        
-        ## Now rendering included nodes if exist
-        for block in node.conf:
-            node.content += render(block, request).content
-    # } endif plugin available
+            elif node.author.is_staff:
+                rendered_string += render_to_string(
+                    templates(node, requestContext.request),
+                    node.content,
+                    {'node': node},
+                    requestContext.request
+                )
+            else:
+                rendered_string += node.content
+        ## }
     
-    if inclusion_point_string and inclusion_point_string in node.link.content:
-        ## Inserting current node content into parent template node and replacing this with that.
-        node.content = node.link.content.replace(inclusion_point_string, node.content)
+    ## endif type in available_plugins }
+    #else: # {
+    #    ## No plugins for this type of node
+    #    if node.author.is_staff:
+    #        ## If author is staff we try to use content as template
+    #        rendered_string += render_to_string(
+    #            templates(node, requestContext.request),
+    #            node.content,
+    #            {'node': node, 'parentContext': requestContext},
+    #            requestContext.request
+    #        )
+    #    else:
+    #        rendered_string += node.content
+    ## endif }
     
-    if node.author.is_staff:
-        node.content = mark_safe(node.content)
-    return node
+    if settings.DEBUG:
+        rendered_string += f'\n<!-- endblock {node.id} -->\n'
+    
+    return rendered_string
 
 def templates(block, request=None):
     templatedir = 'messycms/blocks'
@@ -157,7 +145,7 @@ def templates(block, request=None):
     
     return templates
 
-def render_to_string (templates=[], template='', context={}, request=None):
+def render_to_string(templates=[], template='', context={}, request=None):
     '''
     Renders template to string.
     If `template` is not empty, using it as string template, else using
@@ -175,6 +163,7 @@ def render_to_string (templates=[], template='', context={}, request=None):
             result += dj_render_to_string(templates, context, request)
         except TemplateDoesNotExist:
             pass
+            #raise
     
     return result
 

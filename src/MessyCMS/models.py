@@ -79,7 +79,7 @@ else:
         @property
         def conf(self):
             '''
-            Page attributes.
+            Node attributes.
             '''
             if not self.__conf:
                 #self.__conf = self.get_children().filter(type='.conf').first()
@@ -133,14 +133,11 @@ else:
             '''
             return getattr(self.conf, name, default)
         
-        #def __get_prop(self, name, *args, **kwargs):
-        #    return super().__get__(name, *args, **kwargs)
-        
-        def render(self):
+        def render(self, requestContext):
             '''
-            Lazy content rendering
+            Lazy content rendering, called from template by {% include %} tag
             '''
-            return plugins.render(None, self)
+            return plugins.render(self, requestContext)
         
         def get_absolute_url(self):
             '''
@@ -184,6 +181,12 @@ else:
                 model = model_name
             
             return model.objects.get(pk=id)
+        
+        def is_template_block(self):
+            '''
+            Bool: is this node for template block?
+            '''
+            return self.slug.strip('.').startswith('template-block-')
         
         def __str__(self):
             '''

@@ -92,13 +92,20 @@ def show(request, id=0, path=''):
     
     #plugins.render(node, request)
     
+    if node.link_id and node.type == 'content':
+        ## If link is defined, we use linked node as template for current
+        node.link.context['include'] = node
+        node = node.link
+    
     return render(
         request,
         (
-            f'{request.site.domain}/messycms/base.html',
-            'messycms/base.html',
+            f'{request.site.domain}/messycms/node.html',
+            'messycms/node.html',
         ),
-        {'node': node}
+        {
+            'node': node,
+        }
     )
 
 def str2int(string):
