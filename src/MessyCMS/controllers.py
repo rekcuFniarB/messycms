@@ -92,21 +92,23 @@ def show(request, id=0, path=''):
     
     #plugins.render(node, request)
     
-    if node.link_id and node.type == 'content':
+    if node.link_id and node.type == 'content' and 'HTTP_X_REQUESTED_WITH' not in request.META:
         ## If link is defined, we use linked node as template for current
         node.link.context['include'] = node
         node = node.link
     
-    return render(
-        request,
-        (
+    if 'HTTP_X_REQUESTED_WITH' in request.META:
+        templates = (
+            f'{request.site.domain}/messycms/_node.html',
+            'messycms/_node.html',
+        )
+    else:
+        templates = (
             f'{request.site.domain}/messycms/node.html',
             'messycms/node.html',
-        ),
-        {
-            'node': node,
-        }
-    )
+        )
+    
+    return render(request, templates, {'node': node})
 
 def str2int(string):
     try:
