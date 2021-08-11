@@ -6,6 +6,10 @@ from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.urls import resolve
 
+## This module contains some basic plugins.
+## Additional plugins may be placed inside this module dirs.
+## Also project may define it's own plugins (TODO not implemented)
+
 self = sys.modules[__name__]
 DEBUG = False #settings.DEBUG
 
@@ -183,10 +187,6 @@ def render_to_string(templates=[], template='', context={}, request=None):
         result = template
     
     return result
-
-## This module contains some basic plugins.
-## Additional plugins may be placed inside this module dirs.
-## Also project may define it's own plugins (TODO not implemented)
 
 def items_tree(block, request=None, *args, **kwargs):
     '''
