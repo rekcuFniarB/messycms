@@ -65,7 +65,7 @@ def render(node, requestContext):
                     result.get('templates', ()),
                     ## db based template
                     getattr(node.conf, 'template', node.content),
-                    node.context,
+                    result.get('context', node.context),
                     requestContext.request
                 )
                 

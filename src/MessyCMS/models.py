@@ -71,7 +71,8 @@ else:
                 self.show_in_menu = False
             elif self.type != 'content' and self.parent_id and self.parent.type != '.conf':
                 ## Non "content" types should alwas be children of ".conf" type.
-                parent_conf = self.get_children().filter(type='.conf').first()
+                ## Trying to find conf of parent if exists
+                parent_conf = self.parent.get_children().filter(type='.conf').first()
                 if not parent_conf:
                     parent_conf = Node.objects.create(type='.conf', parent_id=self.parent_id)
                 if parent_conf:
