@@ -273,14 +273,6 @@ def include_item(block, request=None, *args, **kwargs):
         block.context.update(result['context'])
     return result
 
-def inclusion_point(node, request, *args, **kwargs):
-    if node.type == 'inclusion_point':
-        id = node.parent.parent.id
-    else:
-        id = node.id
-    
-    return {'content': f'<template data-id="{id}"></template>'}
-
 def render_view(node, request, *args, **kwargs):
     if node.short:
         resolved = resolve(node.short)
