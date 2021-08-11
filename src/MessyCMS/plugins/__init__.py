@@ -36,7 +36,7 @@ def get_list():
         ('items_list', 'Items list'),
         ('include_item', 'Inclue item'),
         ('.property', 'Property'),
-        ('.conf', 'Node conf'),
+        ('.conf', 'Node config directory'),
         ('inclusion_point', 'Inclusion point'),
         ('render_view', 'Render view'),
     )

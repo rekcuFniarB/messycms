@@ -58,6 +58,7 @@ else:
         link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
         sites = models.ManyToManyField(Site, null=True, blank=True)
         
+        ## Storage for computed data.
         context = {}
         
         def save(self, *args, **kwargs):
@@ -68,6 +69,13 @@ else:
                 self.slug = self.type
                 self.available = False
                 self.show_in_menu = False
+            elif self.type != 'content' and self.parent_id and self.parent.type != '.conf':
+                ## Non "content" types should alwas be children of ".conf" type.
+                parent_conf = self.get_children().filter(type='.conf').first()
+                if not parent_conf:
+                    parent_conf = Node.objects.create(type='.conf', parent_id=self.parent_id)
+                if parent_conf:
+                    self.parent_id = parent_conf.id
             
             super().save(*args, **kwargs)
             
