@@ -32,12 +32,13 @@ setuptools.setup(
     packages=[
         'MessyCMS',
         'MessyCMS.plugins',
+        'MessyCMS.plugins.tgimages',
+        'MessyCMS.plugins.tgimages.templates.tgimages',
+        'MessyCMS.static.messycms.js',
         'MessyCMS.templatetags',
         'MessyCMS.templates',
         'MessyCMS.templates.messycms',
         'MessyCMS.templates.messycms.blocks',
-        'MessyCMS.plugins.tgimages',
-        'MessyCMS.plugins.tgimages.templates.tgimages',
     ],
     package_data={
         '': ['*.conf', '*.md', '*.txt', '*.html', '*.js', '*.css', 'etc/*']

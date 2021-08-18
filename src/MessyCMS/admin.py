@@ -5,6 +5,10 @@ from django.contrib import admin
 from .models import Node
 #from mptt.admin import MPTTModelAdmin
 from mptt.admin import DraggableMPTTAdmin
+from django.urls import path
+from django.http import JsonResponse
+import json
+from django.core.exceptions import PermissionDenied
 
 class NodeAdmin(DraggableMPTTAdmin):
     readonly_fields = ('id',)
@@ -24,6 +28,22 @@ class NodeAdmin(DraggableMPTTAdmin):
             ## Set author to current user if blank.
             obj.author = request.user
         obj.save()
+    
+    def get_urls(self):
+        return super().get_urls() + [
+            path('fields-toggle-maps.json', self.fields_toggle_maps)
+        ]
+    
+    def fields_toggle_maps(self, request):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        return JsonResponse(Node.fields_toggle)
+    
+    class Media:
+        js = (
+            ## Include this script in admin interface.
+            'messycms/js/admin.js',
+        )
     
 #admin.site.register(
     #Node,
