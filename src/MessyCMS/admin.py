@@ -43,6 +43,7 @@ class NodeAdmin(DraggableMPTTAdmin):
         js = (
             ## Include this script in admin interface.
             'messycms/js/admin.js',
+            'https://cdn.tiny.cloud/1/no-api-key/tinymce/5/tinymce.min.js'
         )
     
 #admin.site.register(

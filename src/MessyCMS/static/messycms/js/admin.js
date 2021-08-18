@@ -1,6 +1,7 @@
 function MessyCMSAdmin() {
     var This = this;
     this.typeField = document.getElementById('id_type');
+    this.contentField = document.getElementById('id_content');
     this.form = document.getElementById('node_form');
     this.baseURL = (function(){
         var urlParts = document.location.pathname.split('/MessyCMS/node');
@@ -106,6 +107,33 @@ function MessyCMSAdmin() {
         }
     }; // toggleFields()
     
+    this.toggleWysiwyg = function(event) {
+        if (event.target.checked) {
+            if (typeof This.contentField.wysiwyg === 'undefined') {
+                This.contentField.wysiwyg = null;
+                tinyMCE.init({
+                    //mode: "textareas",
+                    theme: "silver",
+                    selector: `#${This.contentField.id}`,
+                    //plugins: "spellchecker,directionality,paste,searchreplace",
+                    //language: "{{ language }}",
+                    //directionality: "{{ directionality }}",
+                    //spellchecker_languages : "{{ spellchecker_languages }}",
+                    //spellchecker_rpc_url : "{{ spellchecker_rpc_url }}"
+                }).then((data) => {
+                    This.contentField.wysiwyg = data[0];
+                    //document.querySelector('.tox-notification__dismiss').click();
+                });
+            } else {
+                // Already initialized
+                tinyMCE.execCommand('mceToggleEditor', true, This.contentField.id);
+            }
+        } else {
+            // Uncheck event
+            tinyMCE.execCommand('mceToggleEditor', false, This.contentField.id);
+        }
+    };
+    
     if (this.typeField) {
         this.typeField.addEventListener('change', (event) => {this.toggleFields();});
         
@@ -115,6 +143,20 @@ function MessyCMSAdmin() {
             This.fieldsToggleMaps = data;
             This.toggleFields();
         });
+    }
+    
+    if (typeof window.tinymce === 'object') {
+        this.toggleWysiwygCheckbox = document.getElementById('id_toggle_wysiwyg');
+        if (!this.toggleWysiwygCheckbox) {
+            let toggleWysiwygCheckboxHtml = `<input type="checkbox" id="id_toggle_wysiwyg">
+            <label class="vCheckboxLabel" for="id_toggle_wysiwyg">WYSIWYG</label>`;
+            let checkboxWrap = document.createElement('div');
+            checkboxWrap.classList.add('checkbox-row');
+            checkboxWrap.innerHTML = toggleWysiwygCheckboxHtml;
+            this.contentField.after(checkboxWrap);
+            this.toggleWysiwygCheckbox = document.getElementById('id_toggle_wysiwyg');
+            this.toggleWysiwygCheckbox.addEventListener('change', this.toggleWysiwyg);
+        }
     }
 }
 
