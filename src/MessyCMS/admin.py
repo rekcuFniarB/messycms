@@ -5,10 +5,11 @@ from django.contrib import admin
 from .models import Node
 #from mptt.admin import MPTTModelAdmin
 from mptt.admin import DraggableMPTTAdmin
-from django.urls import path
+from django.urls import path, reverse
 from django.http import JsonResponse
 import json
 from django.core.exceptions import PermissionDenied
+#from django.contrib.admin.views.decorators import staff_member_required
 
 class NodeAdmin(DraggableMPTTAdmin):
     readonly_fields = ('id',)
@@ -31,13 +32,36 @@ class NodeAdmin(DraggableMPTTAdmin):
     
     def get_urls(self):
         return super().get_urls() + [
-            path('fields-toggle-maps.json', self.fields_toggle_maps)
+            path('fields-toggle-maps.json', self.fields_toggle_maps),
+            path('nodes-links.json', self.nodes_links),
         ]
     
     def fields_toggle_maps(self, request):
         if not request.user.is_staff:
             raise PermissionDenied
         return JsonResponse(Node.fields_toggle)
+    
+    #@staff_member_required
+    def nodes_links(self, request):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        
+        result = []
+        
+        querySet = Node.objects.filter(type='content', available=True, sites__id=request.site.id).order_by('lft', 'rght')
+        
+        for item in querySet:
+            if item.parent_id and item.parent.type != 'content':
+                continue
+            
+            result.append({
+                'title': f'{"." * item.level} {str(item)}',
+                'value': reverse('messycms-node-by-path', kwargs={'path': item.id}),
+                'data-node-id': f'{item.id}'
+            })
+        
+        ## TypeError: In order to allow non-dict objects to be serialized set the safe parameter to False.
+        return JsonResponse(result, safe=False)
     
     class Media:
         js = (

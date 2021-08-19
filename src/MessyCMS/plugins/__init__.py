@@ -1,10 +1,13 @@
 import sys, os
+import re
 from django.template.loader import render_to_string as dj_render_to_string
 from django.template import TemplateDoesNotExist, Template, Context
 from django.utils import text
 from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.urls import resolve
+from django.http import HttpResponseRedirect
+#from ..models import Node ## this produces "app not ready yet" error.
 
 ## This module contains some basic plugins.
 ## Additional plugins may be placed inside this module dirs.
@@ -12,6 +15,18 @@ from django.urls import resolve
 
 self = sys.modules[__name__]
 DEBUG = False #settings.DEBUG
+
+regexp = {
+    'ahref': re.compile(r'<a href="(/\d+?/)"'),
+    'digit': re.compile(r'\d+')
+}
+
+def get_model():
+    ## Lazy model getter to workaround "app not ready error"
+    if not getattr(self, 'NodeModel', None):
+        from ..models import Node
+        setattr(self, 'NodeModel', Node)
+    return NodeModel
 
 def slugify(slug, *args, **kwargs):
     '''
@@ -118,7 +133,26 @@ def render(node, requestContext):
     if settings.DEBUG:
         rendered_string += f'\n<!-- endblock {node.id} -->\n'
     
+    rendered_string = parse_links(rendered_string)
+    
     return rendered_string
+
+def parse_links(string):
+    '''
+    Resolving local redirecting links to actual urls.
+    '''
+    if '<a href="/' in string:
+        for match in regexp['ahref'].finditer(string):
+            try:
+                resolved = resolve(match[1])
+                if resolved.url_name == 'messycms-node-by-id' and 'id' in resolved.kwargs:
+                    node = get_model().objects.get(pk=resolved.kwargs['id'])
+                    if node:
+                        replacement = match[0].replace(match[1], node.get_absolute_url())
+                        string = string.replace(match[0], replacement)
+            except:
+                pass
+    return string
 
 def templates(block, request=None):
     templatedir = 'messycms/blocks'
