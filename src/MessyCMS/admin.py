@@ -1,5 +1,4 @@
-# Register your models here.
-
+from django.conf import settings
 from django.contrib import admin
 #from django.contrib.auth.admin import UserAdmin
 from .models import Node
@@ -11,6 +10,8 @@ import json
 from django.core.exceptions import PermissionDenied
 #from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Q
+
+# Register your models here.
 
 class NodeAdmin(DraggableMPTTAdmin):
     readonly_fields = ('id',)
@@ -80,7 +81,7 @@ class NodeAdmin(DraggableMPTTAdmin):
         
         result = []
         
-        querySet = Node.objects.filter(type='content', available=True, sites__id=request.site.id).order_by('lft', 'rght')
+        querySet = self.get_queryset(request).filter(type='content', available=True, sites__id=request.site.id)
         
         for item in querySet:
             if item.parent_id and item.parent.type != 'content':
@@ -96,12 +97,15 @@ class NodeAdmin(DraggableMPTTAdmin):
         return JsonResponse(result, safe=False)
     
     class Media:
-        js = (
+        js = [
             ## Include this script in admin interface.
             'messycms/js/admin.js',
-            'https://cdn.tiny.cloud/1/no-api-key/tinymce/5/tinymce.min.js'
-        )
-    
+        ]
+        if 'tinymce' in settings.INSTALLED_APPS:
+            js.append('tinymce/tinymce.min.js')
+        else:
+            js.append(f'https://cdn.tiny.cloud/1/{getattr(settings, "TinyMCE_API_Key", "no-api-key")}/tinymce/5/tinymce.min.js')
+
 #admin.site.register(
     #Node,
     #DraggableMPTTAdmin,
