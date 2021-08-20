@@ -10,6 +10,7 @@ from django.http import JsonResponse
 import json
 from django.core.exceptions import PermissionDenied
 #from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Q
 
 class NodeAdmin(DraggableMPTTAdmin):
     readonly_fields = ('id',)
@@ -28,7 +29,38 @@ class NodeAdmin(DraggableMPTTAdmin):
         if not obj.author:
             ## Set author to current user if blank.
             obj.author = request.user
-        obj.save()
+        if not obj.group:
+            ## Set to current user group if blank.
+            obj.group = request.user.groups.first()
+        
+        if not form.cleaned_data.get('sites') and hasattr(request, 'site'):
+            ## Setting current site if not set.
+            ## Just assigning to obj.sites doesn't work because of m2m field.
+            form.cleaned_data['sites'] = request.site.__class__.objects.filter(id=request.site.id)
+        
+        #obj.save()
+        return super().save_model(request, obj, form, change)
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(Q(author=request.user) | Q(group__in=request.user.groups.all())).filter(sites=request.site.id)
+    
+    def get_form(self, request, obj=None, **kwargs):
+        if not request.user.is_superuser:
+            kwargs['exclude'] = ['author', 'group', 'link']
+        
+        form = super().get_form(request, obj, **kwargs)
+        
+        if not request.user.is_superuser:
+            ## Filter dropdown elements by current user and group
+            form.base_fields['parent']._queryset = form.base_fields['parent']._queryset.filter(Q(author=request.user) | Q(group__in=request.user.groups.all()))
+            ## Show only current site in list. We can not exclude this field completely
+            ## because it will not allow to set site in save_model() otherwise.
+            form.base_fields['sites']._queryset = form.base_fields['sites']._queryset.filter(id=request.site.id)
+        
+        return form
     
     def get_urls(self):
         return super().get_urls() + [

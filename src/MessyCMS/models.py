@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 #from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from mptt.models import MPTTModel, TreeForeignKey
 from django.utils.timezone import now
 from django.utils.text import slugify
@@ -48,6 +49,7 @@ else:
         )
         node_class = models.CharField(max_length=255, default='', blank=True)
         author = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
+        group = models.ForeignKey(Group, on_delete=models.SET_NULL, blank=True, null=True)
         timestamp = models.DateTimeField(default=now)
         show_in_menu = models.BooleanField(default=False)
         ## Is node available?
