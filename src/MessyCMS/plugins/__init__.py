@@ -17,7 +17,7 @@ self = sys.modules[__name__]
 DEBUG = False #settings.DEBUG
 
 regexp = {
-    'ahref': re.compile(r'<a href="(/\d+?/)"'),
+    'ahref': re.compile(r'<a\s+href="(/\d+?/)"'),
     'digit': re.compile(r'\d+')
 }
 
@@ -141,17 +141,16 @@ def parse_links(string):
     '''
     Resolving local redirecting links to actual urls.
     '''
-    if '<a href="/' in string:
-        for match in regexp['ahref'].finditer(string):
-            try:
-                resolved = resolve(match[1])
-                if resolved.url_name == 'messycms-node-by-id' and 'id' in resolved.kwargs:
-                    node = get_model().objects.get(pk=resolved.kwargs['id'])
-                    if node:
-                        replacement = match[0].replace(match[1], node.get_absolute_url())
-                        string = string.replace(match[0], replacement)
-            except:
-                pass
+    for match in regexp['ahref'].finditer(string):
+        try:
+            resolved = resolve(match[1])
+            if resolved.url_name == 'messycms-node-by-id' and 'id' in resolved.kwargs:
+                node = get_model().objects.get(pk=resolved.kwargs['id'])
+                if node:
+                    replacement = match[0].replace(match[1], node.get_absolute_url())
+                    string = string.replace(match[0], replacement)
+        except:
+            pass
     return string
 
 def templates(block, request=None):
