@@ -71,7 +71,7 @@ def render(node, requestContext):
     if settings.DEBUG:
         rendered_string = f'<!-- block id: {node.id}; type: {node.type} -->\n'
     
-    if node.type in available_plugins: # {
+    if node.type in available_plugins and node.author_id and node.author.is_staff: # {
         ## If there is method
         #if node.type in dir():
         if hasattr(self, node.type): ## same as above {
@@ -94,7 +94,7 @@ def render(node, requestContext):
         ## }  endif there is plugin method
         else: ## { No method for this node type
             ## If current node is a section of some node
-            if node.parent_id and node.parent.type == '.conf' and node.author.is_staff:
+            if node.parent_id and node.parent.type == '.conf':
                 ## This will add a section to owning node using slug as template
                 ## name and rendered with parent context
                 rendered_string += render_to_string(
@@ -103,7 +103,7 @@ def render(node, requestContext):
                     {'node': node.parent.parent},
                     requestContext.request
                 )
-            elif node.author.is_staff:
+            else:
                 node.content = mark_safe(node.content)
                 rendered_string += render_to_string(
                     templates(node, requestContext.request),
@@ -111,23 +111,12 @@ def render(node, requestContext):
                     {'node': node},
                     requestContext.request
                 )
-            else:
-                rendered_string += node.content
         ## }
     
-    ## endif type in available_plugins }
-    #else: # {
-    #    ## No plugins for this type of node
-    #    if node.author.is_staff:
-    #        ## If author is staff we try to use content as template
-    #        rendered_string += render_to_string(
-    #            templates(node, requestContext.request),
-    #            node.content,
-    #            {'node': node, 'parentContext': requestContext},
-    #            requestContext.request
-    #        )
-    #    else:
-    #        rendered_string += node.content
+    ## } endif type in available_plugins
+    else: ## {
+        ## No plugin for this type of node or node author is not staff
+        rendered_string += node.content
     ## endif }
     
     if settings.DEBUG:
