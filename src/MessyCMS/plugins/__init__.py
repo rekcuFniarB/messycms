@@ -142,7 +142,7 @@ def parse_links(string):
             pass
     return string
 
-def templates(block, request=None):
+def templates(node, request=None):
     templatedir = 'messycms/blocks'
     
     ## So, we can get three templates:
@@ -150,28 +150,28 @@ def templates(block, request=None):
     ##     type-class.html
     ##     type.html
     
-    block_type = slugify(block.type).strip('.')
-    template_name = slugify(getattr(block.conf, 'template', '')).strip('.')
-    block_title = slugify(block.title).strip('.')
-    block_slug = slugify(block.slug).strip('.')
-    block_short = slugify(block.short).strip('.')
-    block_class = slugify(block.node_class).strip('.')
+    node_type = slugify(node.type).strip('.')
+    template_name = slugify(getattr(node.conf, 'template', '')).strip('.')
+    node_title = slugify(node.title).strip('.')
+    node_slug = slugify(node.slug).strip('.')
+    node_short = slugify(node.short).strip('.')
+    node_class = slugify(node.node_class).strip('.')
     
     templates = [
-        os.path.join(templatedir, f'{block_type}-{template_name}.html'),
+        os.path.join(templatedir, f'{node_type}-{template_name}.html'),
         os.path.join(templatedir, f'{template_name}.html'),
-        os.path.join(templatedir, f'{block_type}-{block_title}.html'),
-        os.path.join(templatedir, f'{block_type}-{block_slug}.html'),
-        os.path.join(templatedir, f'{block_type}-{block_short}.html'),
-        os.path.join(templatedir, f'{block_type}-{block_class}.html'),
-        os.path.join(templatedir, f'{block_slug}.html'),
-        os.path.join(templatedir, f'{block_class}.html'),
-        os.path.join(templatedir, f'{block_type}.html'),
+        os.path.join(templatedir, f'{node_type}-{node_title}.html'),
+        os.path.join(templatedir, f'{node_type}-{node_slug}.html'),
+        os.path.join(templatedir, f'{node_type}-{node_short}.html'),
+        os.path.join(templatedir, f'{node_type}-{node_class}.html'),
+        os.path.join(templatedir, f'{node_slug}.html'),
+        os.path.join(templatedir, f'{node_class}.html'),
+        os.path.join(templatedir, f'{node_type}.html'),
     ]
     
     if request and hasattr(request, 'site'):
         ## Also adding variants for current domain
-        ## e.g. domain/messcms/blocks/
+        ## e.g. domain/messcms/nodes/
         for path in reversed(templates[:]):
             templates.insert(0, os.path.join(request.site.domain, path))
     
@@ -210,49 +210,49 @@ def render_to_string(templates=[], template='', context={}, request=None):
     
     return result
 
-def items_tree(block, request=None, *args, **kwargs):
+def items_tree(node, request=None, *args, **kwargs):
     '''
-    Renders tree type block. TODO add menu support
+    Renders tree type node.
     '''
     result = {}
-    if block.link:
-        items = block.link.get_descendants().filter(available=True, *args, **kwargs)
+    if node.link:
+        items = node.link.get_descendants().filter(available=True, *args, **kwargs)
         if items:
             result = {
-                'templates': templates(block, request),
+                'templates': templates(node, request),
                 'context': {
                     'nodes': items,
-                    'node': block
+                    'node': node
                 }
             }
-            block.context.update(result['context'])
+            node.context.update(result['context'])
     return result
 
-def items_list(block, request=None, *args, **kwargs):
+def items_list(node, request=None, *args, **kwargs):
     '''
     Renders one level list of items.
     '''
     result = {}
     items = None
-    if block.link:
-        items = block.link.get_children().filter(available=True)
+    if node.link:
+        items = node.link.get_children().filter(available=True)
     else:
         ## Using parent if no link defined
-        items = block.parent.parent.get_children().filter(available=True)
+        items = node.parent.parent.get_children().filter(available=True)
     
-    ## If block has "sort" property
-    sort = block.prop('sort')
+    ## If node has "sort" property
+    sort = node.prop('sort')
     if sort:
         if type(sort) is list:
             items = items.order_by(*sort)
         else:
             items = items.order_by(sort)
     
-    ## If block has "limit" property
-    limit = block.prop('limit')
-    ## If block has "pagination" property
+    ## If node has "limit" property
+    limit = node.prop('limit')
+    ## If node has "pagination" property
     ## Should contain number of items per page
-    pagination = int(block.prop('pagination', 0))
+    pagination = int(node.prop('pagination', 0))
     
     if pagination:
         from django.core.paginator import Paginator
@@ -269,30 +269,30 @@ def items_list(block, request=None, *args, **kwargs):
     
     if items:
         result = {
-            'templates': templates(block, request),
+            'templates': templates(node, request),
             'context': {
                 'nodes': items,
-                'node': block
+                'node': node
             }
         }
-        block.context.update(result['context'])
+        node.context.update(result['context'])
     
     return result
 
-def include_item(block, request=None, *args, **kwargs):
+def include_item(node, request=None, *args, **kwargs):
     '''
     Renders one element.
     '''
     result = {}
-    if block.link and block.link.available:
+    if node.link and node.link.available:
         result = {
-            'templates': templates(block, request),
+            'templates': templates(node, request),
             'context': {
-                'nodes': [block.link],
-                'node': block
+                'nodes': [node.link],
+                'node': node
             }
         }
-        block.context.update(result['context'])
+        node.context.update(result['context'])
     return result
 
 def render_view(node, request, *args, **kwargs):
