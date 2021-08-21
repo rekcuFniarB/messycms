@@ -43,6 +43,13 @@ class NodeAdmin(DraggableMPTTAdmin):
         #obj.save()
         return super().save_model(request, obj, form, change)
     
+    def delete_model(self, request, obj):
+        if not request.user.is_superuser:
+            if obj.author != request.user and obj.group not in request.user.grouops.all():
+                ## Prevent deleting if no permission
+                raise PermissionDenied
+        return super().delete_model(request, obj)
+    
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
