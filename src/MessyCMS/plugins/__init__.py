@@ -7,19 +7,61 @@ from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.urls import resolve
 from django.http import HttpResponseRedirect
+import importlib
 #from ..models import Node ## this produces "app not ready yet" error.
 
 ## This module contains some basic plugins.
-## Additional plugins may be placed inside this module dirs.
-## Also project may define it's own plugins (TODO not implemented)
+## Also project may define its own plugins.
 
 self = sys.modules[__name__]
 DEBUG = False #settings.DEBUG
+
+__IMPORTED_MODULES__ = {}
+__PLUGIN_INSTANCES__ = {}
 
 regexp = {
     'ahref': re.compile(r'<a\s+href="(/\d+?/)"'),
     'digit': re.compile(r'\d+')
 }
+
+class MessyPlugin:
+    def execute(self, node, request=None, *args, **kwargs):
+        '''
+        Main plugin method.
+        node: model instance
+        request: request
+        Returns dict
+        '''
+        return {
+            'templates': templates(node, request),
+            'context': {
+                'nodes': [node],
+                'node': node
+            },
+            'content': ''
+        }
+    
+    fields_toggle = (
+        ## define which fields to show in admin
+        #{'field': 'title', 'label': 'Title', 'help': 'Optional field description'},
+        ## Or just field name
+        #'node_class',
+    )
+
+def import_module(name):
+    '''
+    Imports class from module and returns it. Name is string in the form of "module.classname"
+    '''
+    if name not in __IMPORTED_MODULES__:
+        _name = name.split('.')
+        if len(_name) > 1:
+            ## Expected value of "name" is "module.className"
+            class_name = _name.pop()
+            module_name = '.'.join(_name)
+            __IMPORTED_MODULES__[name] = getattr(importlib.import_module(module_name), class_name)
+        else:
+            __IMPORTED_MODULES__[name] = importlib.import_module(name)
+    return __IMPORTED_MODULES__[name]
 
 def get_model():
     ## Lazy model getter to workaround "app not ready error"
@@ -48,17 +90,30 @@ def slug2name(slug):
     return ''.join(parts).strip('.- ')
 
 def get_list():
-    ## TODO add support of project local plugins
-    return (
+    return [
         ('content', 'Content'),
-        ('items_tree', 'Items tree'),
-        ('items_list', 'Items list'),
-        ('include_item', 'Inclue item'),
+        ('ItemsTree', 'Items tree'),
+        ('ItemsList', 'Items list'),
+        ('IncludeItem', 'Inclue item'),
         ('.property', 'Property'),
         ('.conf', 'Node config directory'),
         ('inclusion_point', 'Inclusion point'),
-        ('render_view', 'Render view'),
-    )
+        ('RenderView', 'Render view'),
+    ] + getattr(settings, 'MESSYCMS_PLUGINS', [])
+
+def get_plugin_instance(name):
+    '''
+    Load once and return plugin
+    '''
+    if name not in __PLUGIN_INSTANCES__:
+        plugin_class = getattr(self, name, None)
+        if not plugin_class:
+            try:
+                plugin_class = import_module(name)
+            except (ModuleNotFoundError, ValueError):
+                plugin_class = lambda: None
+        __PLUGIN_INSTANCES__[name] = plugin_class()
+    return __PLUGIN_INSTANCES__[name]
 
 def render(node, requestContext):
     if node.type.startswith('.'):
@@ -74,10 +129,11 @@ def render(node, requestContext):
     if node.type in available_plugins and node.author_id and node.author.is_staff: # {
         ## If there is method
         #if node.type in dir():
-        if hasattr(self, node.type): ## same as above {
-            #rendered_string += node.content
+        plugin_instance = get_plugin_instance(node.type)
+        
+        if plugin_instance: ## same as above {
             ## Calling method from this module
-            result = getattr(self, node.type)(node, requestContext.request)
+            result = plugin_instance.execute(node, requestContext.request)
             if result: # {
                 rendered_string += render_to_string(
                     ## file based list of templates to try
@@ -210,13 +266,75 @@ def render_to_string(templates=[], template='', context={}, request=None):
     
     return result
 
-def items_tree(node, request=None, *args, **kwargs):
+class ItemsTree(MessyPlugin):
     '''
     Renders tree type node.
     '''
-    result = {}
-    if node.link:
-        items = node.link.get_descendants().filter(available=True, *args, **kwargs)
+    def execute(self, node, request=None, *args, **kwargs):
+        result = {}
+        if node.link:
+            items = node.link.get_descendants().filter(available=True, *args, **kwargs)
+            if items:
+                result = {
+                    'templates': templates(node, request),
+                    'context': {
+                        'nodes': items,
+                        'node': node
+                    }
+                }
+                node.context.update(result['context'])
+        
+        return result
+    
+    fields_toggle = (
+        {'field': 'slug', 'label': 'Alias'},
+        {'field': 'title', 'label': 'Title'},
+        'node_class',
+        'available',
+        {'field': 'content', 'label': 'Content / Template'},
+        'parent',
+        {'field': 'link', 'label': 'Source', 'help': 'Select node to use as data source. Parent node used if empty.'},
+        'type',
+        'id',
+    )
+
+class ItemsList(ItemsTree):
+    def execute(self, node, request=None, *args, **kwargs):
+        result = {}
+        items = None
+        if node.link:
+            items = node.link.get_children().filter(available=True)
+        else:
+            ## Using parent if no link defined
+            items = node.parent.parent.get_children().filter(available=True)
+        
+        ## If node has "sort" property
+        sort = node.prop('sort')
+        if sort:
+            if type(sort) is list:
+                items = items.order_by(*sort)
+            else:
+                items = items.order_by(sort)
+        
+        ## If node has "limit" property
+        limit = node.prop('limit')
+        ## If node has "pagination" property
+        ## Should contain number of items per page
+        pagination = int(node.prop('pagination', 0))
+        
+        if pagination:
+            from django.core.paginator import Paginator
+            paginator = Paginator(items, pagination)
+            items = paginator.get_page(request.GET.get('page'))
+        elif limit:
+            if type(limit) is list:
+                if len(limit) > 1:
+                    items = items[limit[0]:limit[1]]
+                else:
+                    items = items[:limit[0]]
+            else:
+                items = items[:int(limit)]
+        
         if items:
             result = {
                 'templates': templates(node, request),
@@ -226,78 +344,39 @@ def items_tree(node, request=None, *args, **kwargs):
                 }
             }
             node.context.update(result['context'])
-    return result
+        
+        return result
 
-def items_list(node, request=None, *args, **kwargs):
-    '''
-    Renders one level list of items.
-    '''
-    result = {}
-    items = None
-    if node.link:
-        items = node.link.get_children().filter(available=True)
-    else:
-        ## Using parent if no link defined
-        items = node.parent.parent.get_children().filter(available=True)
-    
-    ## If node has "sort" property
-    sort = node.prop('sort')
-    if sort:
-        if type(sort) is list:
-            items = items.order_by(*sort)
-        else:
-            items = items.order_by(sort)
-    
-    ## If node has "limit" property
-    limit = node.prop('limit')
-    ## If node has "pagination" property
-    ## Should contain number of items per page
-    pagination = int(node.prop('pagination', 0))
-    
-    if pagination:
-        from django.core.paginator import Paginator
-        paginator = Paginator(items, pagination)
-        items = paginator.get_page(request.GET.get('page'))
-    elif limit:
-        if type(limit) is list:
-            if len(limit) > 1:
-                items = items[limit[0]:limit[1]]
-            else:
-                items = items[:limit[0]]
-        else:
-            items = items[:int(limit)]
-    
-    if items:
-        result = {
-            'templates': templates(node, request),
-            'context': {
-                'nodes': items,
-                'node': node
-            }
-        }
-        node.context.update(result['context'])
-    
-    return result
-
-def include_item(node, request=None, *args, **kwargs):
+class IncludeItem(ItemsTree):
     '''
     Renders one element.
     '''
-    result = {}
-    if node.link and node.link.available:
-        result = {
-            'templates': templates(node, request),
-            'context': {
-                'nodes': [node.link],
-                'node': node
+    def execute(self, node, request=None, *args, **kwargs):
+        result = {}
+        if node.link and node.link.available:
+            result = {
+                'templates': templates(node, request),
+                'context': {
+                    'nodes': [node.link],
+                    'node': node
+                }
             }
-        }
-        node.context.update(result['context'])
-    return result
+            node.context.update(result['context'])
+        return result
 
-def render_view(node, request, *args, **kwargs):
-    if node.short:
-        resolved = resolve(node.short)
-        response = resolved.func(request, **resolved.kwargs)
-        node.content += response.content.decode(response.charset)
-    return {}
+class RenderView(MessyPlugin):
+    def execute(self, node, request, *args, **kwargs):
+        if node.short:
+            resolved = resolve(node.short)
+            response = resolved.func(request, **resolved.kwargs)
+            node.content += response.content.decode(response.charset)
+        return {}
+    
+    fields_toggle = (
+        {'field': 'slug', 'label': 'Alias'},
+        {'field': 'short', 'label': 'View alias name'},
+        'parent',
+        'available',
+        'type',
+        'id',
+    )

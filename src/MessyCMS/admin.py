@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib import admin
 #from django.contrib.auth.admin import UserAdmin
 from .models import Node
+from . import plugins
 #from mptt.admin import MPTTModelAdmin
 from mptt.admin import DraggableMPTTAdmin
 from django.urls import path, reverse
@@ -72,7 +73,13 @@ class NodeAdmin(DraggableMPTTAdmin):
     def fields_toggle_maps(self, request):
         if not request.user.is_staff:
             raise PermissionDenied
-        return JsonResponse(Node.fields_toggle)
+        field = request.GET.get('field', '')
+        plugin_instance = plugins.get_plugin_instance(field)
+        if plugin_instance:
+            fields_maps = {field: plugin_instance.fields_toggle}
+        else:
+            fields_maps = Node.fields_toggle
+        return JsonResponse(fields_maps)
     
     #@staff_member_required
     def nodes_links(self, request):

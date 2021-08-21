@@ -61,14 +61,23 @@ function MessyCMSAdmin() {
     
     this.fieldsToggleMaps = undefined;
     
-    this.toggleFields = function() {
-        if (!this.fieldsToggleMaps) return;
+    this.toggleFields = function(fieldsToggleMaps) {
+        if (typeof fieldsToggleMaps === 'undefined') {
+            // Get fields maps for curreyt type
+            fetch(`${this.baseURL}fields-toggle-maps.json?field=${This.typeField.value}`).then((response) => {
+                return response.json();
+            }).then((data) => {
+                This.toggleFields(data);
+            });
+            // Run request and exit. This function will be called again when request is complete.
+            return;
+        }
         
         var fieldsRows = this.form.querySelectorAll('.form-row');
         
-        if (typeof this.fieldsToggleMaps[this.typeField.value] !== 'undefined') {
+        if (typeof fieldsToggleMaps[this.typeField.value] === 'object' && fieldsToggleMaps[this.typeField.value].length) {
             for (let row of fieldsRows) {
-                let filteredRows = this.fieldsToggleMaps[this.typeField.value].filter((item) => {
+                let filteredRows = fieldsToggleMaps[this.typeField.value].filter((item) => {
                     if (typeof item === 'object') {
                         return row.classList.contains(`field-${item.field}`);
                     } else {
@@ -143,12 +152,13 @@ function MessyCMSAdmin() {
     if (this.typeField) {
         this.typeField.addEventListener('change', (event) => {this.toggleFields();});
         
-        fetch(`${this.baseURL}fields-toggle-maps.json`).then((response) => {
-            return response.json();
-        }).then((data) => {
-            This.fieldsToggleMaps = data;
-            This.toggleFields();
-        });
+        //fetch(`${this.baseURL}fields-toggle-maps.json`).then((response) => {
+        //    return response.json();
+        //}).then((data) => {
+        //    This.fieldsToggleMaps = data;
+        //    This.toggleFields();
+        //});
+        this.toggleFields();
     }
     
     if (typeof window.tinymce === 'object') {

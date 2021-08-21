@@ -10,27 +10,12 @@ from django.utils.text import slugify
 from django.urls import reverse
 from . import plugins
 import json
-import importlib
-
-__IMPORTED_CLASSES__ = {}
 
 AUTH_USER_MODEL = get_user_model()
 
-def import_class(name):
-    '''
-    Imports class from module and returns it. Name is string in the form of "module.classname"
-    '''
-    if name not in __IMPORTED_CLASSES__:
-        _name = name.split('.')
-        ## Expected value of "name" is "module.className"
-        class_name = _name.pop()
-        module_name = '.'.join(_name)
-        __IMPORTED_CLASSES__[name] = getattr(importlib.import_module(module_name), class_name)
-    return __IMPORTED_CLASSES__[name]
-
 if hasattr(settings, 'MESSYCMS_BASE_MODEL'):
     ## Developer may define own models if he wants to define additional fields and methods
-    Node = import_class(settings.MESSYCMS_BASE_MODEL)
+    Node = plugins.import_module(settings.MESSYCMS_BASE_MODEL)
 else:
     class Node(MPTTModel):
         __conf = None
@@ -42,7 +27,7 @@ else:
         ## Not not using SlugField and not making it unique because it may appear with same name in 
         ## different tree level. Instead we prepare it in self.save().
         type = models.CharField(
-            max_length = 32,
+            max_length = 255,
             choices = plugins.get_list(),
             default = plugins.get_list()[0][0],
             verbose_name = 'Type'
@@ -186,7 +171,7 @@ else:
                         model_defined = True
                         break
                 if model_defined:
-                    model = import_class(model_name)
+                    model = plugins.import_module(model_name)
                 else:
                     if self:
                         raise self.DoesNotExist(f'No installed app for model {model_name}')
@@ -227,50 +212,9 @@ else:
                 'type',
                 'id',
             ),
-            'items_tree': (
-                {'field': 'slug', 'label': 'Alias'},
-                {'field': 'title', 'label': 'Title'},
-                'node_class',
-                'available',
-                {'field': 'content', 'label': 'Content / Template'},
-                'parent',
-                {'field': 'link', 'label': 'Source', 'help': 'Select node to use as data source. Parent node used if empty.'},
-                'type',
-                'id',
-            ),
-            'items_list': (
-                {'field': 'slug', 'label': 'Alias'},
-                {'field': 'title', 'label': 'Title'},
-                'node_class',
-                'available',
-                {'field': 'content', 'label': 'Content / Template'},
-                'parent',
-                {'field': 'link', 'label': 'Source', 'help': 'Select node to use as data source. Parent node used if empty.'},
-                'type',
-                'id',
-            ),
-            'include_item': (
-                {'field': 'slug', 'label': 'Alias'},
-                ('title', 'Title'),
-                'node_class',
-                'available',
-                {'field': 'content', 'label': 'Content / Template'},
-                'parent',
-                {'field': 'link', 'label': 'Source', 'help': 'Select node to use as data source. Parent node used if empty.'},
-                'type',
-                'id',
-            ),
-           'inclusion_point': (
+            'inclusion_point': (
                 {'field': 'slug', 'label': 'Alias'},
                 'parent',
-                'type',
-                'id',
-            ),
-           'render_view': (
-                {'field': 'slug', 'label': 'Alias'},
-                {'field': 'short', 'label': 'View alias name'},
-                'parent',
-                'available',
                 'type',
                 'id',
             ),
