@@ -124,7 +124,7 @@ function MessyCMSAdmin() {
                     //mode: "textareas",
                     theme: "silver",
                     selector: `#${This.contentField.id}`,
-                    plugins: 'link',
+                    plugins: 'link,image',
                     menubar: 'file edit view format insert tools',
                     link_list: `${This.baseURL}nodes-links.json`,
                     convert_urls: false,
