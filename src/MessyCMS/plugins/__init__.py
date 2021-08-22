@@ -301,7 +301,6 @@ class ItemsTree(MessyPlugin):
 class ItemsList(ItemsTree):
     def execute(self, node, request=None, *args, **kwargs):
         result = {}
-        items = None
         if node.link:
             items = node.link.get_children().filter(available=True)
         else:
