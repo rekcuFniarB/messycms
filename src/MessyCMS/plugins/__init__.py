@@ -89,11 +89,8 @@ def slug2name(slug):
     parts = [ x.capitalize() if x != parts[0] else x for x in parts]
     return ''.join(parts).strip('.- ')
 
-def get_list():
-    '''
-    Get list of defined plugins.
-    '''
-    return [
+## List of defined plugins
+plugins_list = [
         ('content', 'Content'),
         ('ItemsTree', 'Items tree'),
         ('ItemsList', 'Items list'),
@@ -104,6 +101,7 @@ def get_list():
         ('inclusion_point', 'Inclusion point'),
         ('RenderView', 'Render view'),
     ] + getattr(settings, 'MESSYCMS_PLUGINS', [])
+
 
 def get_plugin_instance(name):
     '''
@@ -124,7 +122,7 @@ def render(node, requestContext):
         ## It's service type
         return ''
     
-    available_plugins = dict(get_list())
+    available_plugins = dict(plugins_list)
     
     rendered_string = ''
     if settings.DEBUG:

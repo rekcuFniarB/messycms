@@ -28,8 +28,8 @@ else:
         ## different tree level. Instead we prepare it in self.save().
         type = models.CharField(
             max_length = 255,
-            choices = plugins.get_list(),
-            default = plugins.get_list()[0][0],
+            choices = plugins.plugins_list,
+            default = plugins.plugins_list[0][0],
             verbose_name = 'Type'
         )
         node_class = models.CharField(max_length=255, default='', blank=True)
