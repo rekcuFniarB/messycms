@@ -371,11 +371,11 @@ class RenderView(MessyPlugin):
             resolved = resolve(node.short)
             response = resolved.func(request, **resolved.kwargs)
             node.content += response.content.decode(response.charset)
-        return {}
+        return {'templates': templates(node, request)}
     
     fields_toggle = (
         {'field': 'slug', 'label': 'Alias'},
-        {'field': 'short', 'label': 'View alias name'},
+        {'field': 'short', 'label': 'View URL from urlconf'},
         'parent',
         'available',
         'type',
