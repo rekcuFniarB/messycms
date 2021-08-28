@@ -92,8 +92,11 @@ else:
                     for item in self.__conf:
                         ## Preparing content properties
                         name = plugins.slug2name(item.slug)
-                        if item.type == '.property' and name:
-                            if not hasattr(self.__conf, name):
+                        if not name:
+                            name = plugins.slug2name(item.type)
+                        
+                        if name and not hasattr(self.__conf, name):
+                            if item.type in self.property_types:
                                 value = item.content.strip()
                                 
                                 if not value:
@@ -120,8 +123,8 @@ else:
                                 else:
                                     setattr(self.__conf, name, None)
                                 
-                        elif not hasattr(self.__conf, name):
-                            setattr(self.__conf, name, item)
+                            else:
+                                setattr(self.__conf, name, item)
                 else:
                     self.__conf = ()
                 
@@ -203,11 +206,22 @@ else:
             else:
                 return '%s: %s' % (self.id, self.title or self.menu_title or self.short or self.slug)
         
+        ## Types used as property
+        property_types = ('.property', '.redirect')
+        
+        ## Fields visibility in admin.
         fields_toggle = {
             '.property': (
                 {'field': 'slug', 'label': 'Property name'},
                 {'field': 'short', 'label': 'Short value'},
                 {'field': 'content', 'label': 'Long Value', 'help': 'JSON allowed. If empty, "short value" will be used.'},
+                'parent',
+                'type',
+                'id',
+            ),
+            '.redirect': (
+                {'field': 'short', 'label': 'Redirect to URL'},
+                {'field': 'link', 'label': 'Redirect to node'},
                 'parent',
                 'type',
                 'id',

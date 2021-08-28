@@ -90,12 +90,16 @@ def slug2name(slug):
     return ''.join(parts).strip('.- ')
 
 def get_list():
+    '''
+    Get list of defined plugins.
+    '''
     return [
         ('content', 'Content'),
         ('ItemsTree', 'Items tree'),
         ('ItemsList', 'Items list'),
         ('IncludeItem', 'Inclue item'),
         ('.property', 'Property'),
+        ('.redirect', 'Redirect'),
         ('.conf', 'Node config directory'),
         ('inclusion_point', 'Inclusion point'),
         ('RenderView', 'Render view'),
