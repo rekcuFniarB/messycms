@@ -92,10 +92,11 @@ else:
                     for item in self.__conf:
                         ## Preparing content properties
                         name = plugins.slug2name(item.slug)
+                        type_name = plugins.slug2name(item.type)
                         if not name:
-                            name = plugins.slug2name(item.type)
+                            name = plugins.slug2name(type_name)
                         
-                        if name and not hasattr(self.__conf, name):
+                        if name:
                             if item.type in self.property_types:
                                 value = item.content.strip()
                                 
@@ -125,6 +126,9 @@ else:
                                 
                             else:
                                 setattr(self.__conf, name, item)
+                            
+                            if name != type_name:
+                                setattr(self.__conf, type_name, getattr(self.__conf, name, None))
                 else:
                     self.__conf = ()
                 
@@ -159,9 +163,15 @@ else:
                     slugs.append(slugify(slug, allow_unicode=True))
             
             if len(slugs):
-                reverse_url = reverse('messycms-node-by-path', kwargs={'path': '/'.join(slugs)})
+                if 'django.middleware.locale.LocaleMiddleware' in settings.MIDDLEWARE:
+                    if slugs[0] in dict(settings.LANGUAGES):
+                        ## Throwing away language prefix from url, because
+                        ## that middleware prepends it too.
+                        del(slugs[0])
+            if len(slugs):
+                reverse_url = reverse('messycms:node-by-path', kwargs={'path': '/'.join(slugs)})
             else:
-                reverse_url = reverse('messycms-root-path')
+                reverse_url = reverse('messycms:root-path')
             
             return reverse_url
         
@@ -196,6 +206,23 @@ else:
             Real children count, ignores non content type nodes.
             '''
             return self.get_children().filter(type='content').count()
+        
+        @classmethod
+        def get_all_whith_section_type(cls, node_type):
+            '''
+            Get nodes which have specific section type.
+            '''
+            result = []
+            queryset = cls.objects.filter(type=node_type)
+            
+            for subnode in queryset:
+                if subnode.parent_id:
+                    conf = subnode.parent
+                    if conf.parent_id and conf.parent.type == 'content' and conf.type == '.conf':
+                        if hasattr(conf.parent, 'conf') and hasattr(conf.parent.conf, node_type):
+                            if conf.parent.available and conf.parent.author_id and conf.parent.author.is_staff:
+                                result.append(conf.parent)
+            return result
         
         def __str__(self):
             '''

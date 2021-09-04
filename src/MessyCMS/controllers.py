@@ -11,16 +11,20 @@ from django.shortcuts import redirect
 from . import plugins
 
 ## get requested node
-def show(request, id=0, path=''):
+def show_node(request, id=0, path=''):
     ''' /<str:path>/ request handler.'''
     
-    if path:
-        path_list = [x for x in path.split('/') if x]
+    lang_code = getattr(request, 'LANGUAGE_CODE', None)
+    
+    request_path = request.path.strip('/')
+    
+    if request_path:
+        path_list = [x for x in request_path.split('/') if x]
         last_slug = path_list[-1]
+        
         
         ## Get root for requested domain
         objects = Node.objects.filter(parent_id=None, sites__id=request.site.id)
-        
         for path_part in path_list:
             if not objects:
                 ## First iteration
@@ -50,9 +54,9 @@ def show(request, id=0, path=''):
             if objects.count() == 1:
                 ## found
                 node = objects.first()
-                if node.get_absolute_url().strip('/') == request.path.strip('/'):
+                if node.get_absolute_url().strip('/') == request_path:
                     ## Path is same. It means that some path parts are disabled.
-                    raise Http404(f'Path "{request.path}" not found.')
+                    raise Http404(f'Path "{request_path}" not found.')
             elif objects.count() > 1:
                 ## FIXME on 404 page show list of links to choose
                 raise Http404(f'Too many nodes with slug "{last_slug}" found.')
@@ -77,8 +81,9 @@ def show(request, id=0, path=''):
     if node.type != 'content' or not node.available or node.slug.startswith('.') or (node.parent_id and node.parent.type == '.conf'):
         raise PermissionDenied
     
-    if node.get_absolute_url().strip('/') != request.path.strip('/'):
+    if node.get_absolute_url().strip('/') != request_path:
         ## redirects to real path if node was moved.
+        print('PATHS NOT EQ:', node.get_absolute_url().strip('/'), request_path)
         return redirect(node)
     
     ## If node has redirect property
