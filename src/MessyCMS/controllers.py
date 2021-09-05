@@ -43,6 +43,10 @@ def show_node(request, id=0, path=''):
                 raise Http404(f' Found multiple pages with slug {last_slug}.')
             
             node = queryset.first()
+            
+            if node and node.get_absolute_url().strip('/') == request_path:
+                ## This may mean than there is disabled parent node
+                raise Http404(f'Directory not available')
         
         if not node:
             raise Http404(f'Node "{last_slug}" not found')
