@@ -62,7 +62,7 @@ class PluggableExternalAppsWrapper:
         if request.resolver_match:
             if request.resolver_match.app_name == 'admin':
                 skip = True
-            if request.resolver_match.app_name == 'messycms' and response is HttpResponse:
+            if request.resolver_match.app_name == 'messycms' and type(response) is HttpResponse:
                 ## response may be also HttpResponseNotFound, not bypassig it
                 ## allow us insert error response into template node.
                 skip = True
