@@ -1,0 +1,16 @@
+{% load mptt_tags %}
+
+<ul>
+{% recursetree nodes %}
+    {% if node.is_leaf_node %}
+        <li class="item-{{ node.id }}"><a href="{{ node.get_absolute_url }}">{{ node.short }}</a></li>
+    {% else %}
+        <li class="item-{{ node.id }}">
+            <a href="{{ node.get_absolute_url }}">{{ node.short }}</a>
+            <ul class="children">
+                {{ children }}
+            </ul>
+        </li>
+    {% endif %}
+{% endrecursetree %}
+</ul>

@@ -1,0 +1,20 @@
+{% load mptt_tags %}
+
+<nav>
+    <ul>
+    {% recursetree nodes %}
+        {% if node.show_in_menu %}
+            {% if node.is_leaf_node %}
+                <li class="item-{{ node.id }}"><a href="{{ node.get_absolute_url }}">{{ node.menu_title }}</a></li>
+            {% else %}
+                <li class="item-{{ node.id }}">
+                    <a href="{{ node.get_absolute_url }}">{{ node.menu_title }}</a>
+                    <ul class="children">
+                        {{ children }}
+                    </ul>
+                </li>
+            {% endif %}
+        {% endif %}
+    {% endrecursetree %}
+    </ul>
+</nav>

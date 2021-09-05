@@ -1,0 +1,19 @@
+{% if node.context.next_page or node.context.prev_page %}
+<div class="pagination">
+    <span class="step-links">
+        {% if node.context.prev_page %}
+            <a href=".">&laquo; first</a>
+            <a href="?page={{ node.context.prev_page.id }}">previous</a>
+        {% endif %}
+
+        <span class="current">{% comment %}
+            Page {{ node.context.nodes.number }} of {{ node.context.nodes.paginator.num_pages }}.
+        {% endcomment %}</span>
+
+        {% if node.context.next_page %}
+            <a href="?page={{ node.context.next_page.id }}">next</a>
+            <a href="?page={{ node.context.last_page.id }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+{% endif %}
