@@ -2,7 +2,7 @@ from django.conf import settings
 import threading
 from MessyCMS.models import Node
 from django.shortcuts import render
-    
+from django.http.response import HttpResponse
 
 _thread_locals = threading.local()
 
@@ -59,8 +59,14 @@ class PluggableExternalAppsWrapper:
         #template_node_id = getattr(settings, 'MESSYCMS_DEFAULT_TEMPLATE_NODE_ID', None)
         
         skip = False
-        if request.resolver_match and request.resolver_match.app_name in  ('admin', 'messycms'):
-            skip = True
+        if request.resolver_match:
+            if request.resolver_match.app_name == 'admin':
+                skip = True
+            if request.resolver_match.app_name == 'messycms' and response is HttpResponse:
+                ## response may be also HttpResponseNotFound, not bypassig it
+                ## allow us insert error response into template node.
+                skip = True
+        
         if 'HTTP_X_REQUESTED_WITH' in request.META:
             skip = True
         if not response.headers.get('Content-Type', '').startswith('text/html'):
