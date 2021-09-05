@@ -15,57 +15,40 @@ def show_node(request, id=0, path=''):
     ''' /<str:path>/ request handler.'''
     
     lang_code = getattr(request, 'LANGUAGE_CODE', None)
-    
     request_path = request.path.strip('/')
+    node = None
+    
+    site_qs = Node.objects.filter(parent_id=None, sites__id=request.site.id)
     
     if request_path:
         path_list = [x for x in request_path.split('/') if x]
         last_slug = path_list[-1]
         
-        
-        ## Get root for requested domain
-        objects = Node.objects.filter(parent_id=None, sites__id=request.site.id)
+        ## Site root node queryset
+        queryset = site_qs
         for path_part in path_list:
-            if not objects:
-                ## First iteration
-                objects = Node.objects.filter(Q(pk=str2int(path_part)) | Q(slug=path_part), sites__id=request.site.id)
-            else:
-                ## objects is QuerySet, it hasn't get_children() method
-                querysets = []
-                for item in objects:
-                    queryset = item.get_children().filter(Q(pk=str2int(path_part)) | Q(slug=path_part), sites__id=request.site.id)
-                    if queryset:
-                        querysets.append(queryset)
-                if len(querysets):
-                    ## combining all querysets from previous for loop
-                    objects = querysets.pop()
-                    for queryset in querysets:
-                        if queryset:
-                            objects = objects | queryset
-                #else:
-                    #raise Http404(f'Path part "{path_part}" not found.')
-        
-        node = objects.filter(Q(pk=str2int(last_slug)) | Q(slug=last_slug), sites__id=request.site.id).first() ## or last()
+            queryset = queryset_children(queryset).filter(Q(slug=path_part) | Q(pk=str2int(path_part)), sites__id=request.site.id, available=True)
+        node = queryset.first()
         
         if not node:
-            ## If node was not found by exact path, trying to find anywhere
-            ## and redirect to actual path.
-            objects = Node.objects.filter(Q(pk=str2int(last_slug)) | Q(slug=last_slug), sites__id=request.site.id)
-            if objects.count() == 1:
-                ## found
-                node = objects.first()
-                if node.get_absolute_url().strip('/') == request_path:
-                    ## Path is same. It means that some path parts are disabled.
-                    raise Http404(f'Path "{request_path}" not found.')
-            elif objects.count() > 1:
-                ## FIXME on 404 page show list of links to choose
-                raise Http404(f'Too many nodes with slug "{last_slug}" found.')
-            else:
-                raise Http404(f'Node "{last_slug}" not found')
+            ## Exact path search didn't find any node
+            ## Trying to find anywhere
+            queryset = site_qs
+            if lang_code:
+                queryset = queryset_children(queryset).filter(slug=lang_code, available=True, sites__id=request.site.id)
+            queryset = queryset_descendants(queryset).filter(Q(slug=last_slug) | Q(pk=str2int(last_slug)), sites__id=request.site.id, available=True)
+            if queryset.count() > 1:
+                ## TODO show list of matches on 404 page
+                raise Http404(f' Found multiple pages with slug {last_slug}.')
+            
+            node = queryset.first()
+        
+        if not node:
+            raise Http404(f'Node "{last_slug}" not found')
         
         if node.id != str2int(last_slug) and node.slug != last_slug:
             raise Http404(f'Got wrong node "{node.id} {node.slug}" while "{last_slug}" expected.')
-        
+    
     elif id:
         ## This was for testing, actually not used
         try:
@@ -83,7 +66,6 @@ def show_node(request, id=0, path=''):
     
     if node.get_absolute_url().strip('/') != request_path:
         ## redirects to real path if node was moved.
-        print('PATHS NOT EQ:', node.get_absolute_url().strip('/'), request_path)
         return redirect(node)
     
     ## If node has redirect property
@@ -118,3 +100,35 @@ def str2int(string):
     except:
         value = 0
     return value
+
+def combine_querysets(querysets=[]):
+    '''
+    Combine list of querysets into one queryset.
+    querysets: iterable of querysets
+    '''
+    queryset = None
+    if len(querysets):
+        ## combining all querysets from previous for loop
+        queryset = querysets.pop()
+        for qs in querysets:
+            if qs:
+                queryset = queryset | qs
+    return queryset
+
+def queryset_descendants(queryset):
+    if queryset:
+        querysets = []
+        for item in queryset:
+            querysets.append(item.get_descendants())
+        return combine_querysets(querysets)
+    else:
+        return queryset
+
+def queryset_children(queryset):
+    if queryset:
+        querysets = []
+        for item in queryset:
+            querysets.append(item.get_children())
+        return combine_querysets(querysets)
+    else:
+        return queryset
