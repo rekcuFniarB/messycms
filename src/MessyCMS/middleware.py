@@ -69,40 +69,50 @@ class PluggableExternalAppsWrapper:
             #skip = True
         
         ## Get first available templates
+        if not skip:
+            template_node = self.get_template_node(request)
+            
+            if template_node:
+                ## Tmp blank node
+                node = Node()
+                ## Applying response content to this blank node. (response.content is bytes)
+                node.content = response.content.decode(response.charset)
+                #template_node = Node.objects.get(pk=template_node_id)
+                template_node.context['include'] = node
+                templates = (
+                    f'{request.site.domain}/messycms/node.html',
+                    'messycms/node.html',
+                )
+                new_response = render(request, template_name=templates, context={'node': template_node})
+                response.content = new_response.content
+        
+        return response
+    
+    @classmethod
+    def get_template_node(cls, request):
+        '''
+        Get first available template for current site and language code
+        '''
         template_node = None
         node_section = None
         
-        if not skip:
-            queryset = Node.objects.filter(parent_id=None, sites__id=request.site.id, available=True)
-            lang_code = getattr(request, 'LANGUAGE_CODE', None)
-            if lang_code:
-                ## Get first part (no lang subcode)
-                lang_code = lang_code.split('-')[0]
-                lng_queryset = queryset.get_descendants().filter(slug=lang_code, sites__id=request.site.id, available=True)
-                node_section = lng_queryset.get_descendants().filter(type='inclusion_point').first()
-            
-            if not node_section:
-                ## Node for current language not found, search global
-                node_section = queryset.get_descendants().filter(type='inclusion_point').first()
-            
-            if node_section and node_section.parent_id and node_section.parent.type == '.conf':
-                if node_section.parent.parent_id and node_section.parent.parent.type == 'content':
-                    template_node = node_section.parent.parent
+        queryset = Node.objects.filter(parent_id=None, sites__id=request.site.id, available=True)
+        lang_code = getattr(request, 'LANGUAGE_CODE', None)
+        if lang_code:
+            ## Get first part (no lang subcode)
+            lang_code = lang_code.split('-')[0]
+            lng_queryset = queryset.get_descendants().filter(slug=lang_code, sites__id=request.site.id, available=True)
+            node_section = lng_queryset.get_descendants().filter(type='inclusion_point').first()
         
-        if template_node:
-            ## Tmp blank node
-            node = Node()
-            ## Applying response content to this blank node. (response.content is bytes)
-            node.content = response.content.decode(response.charset)
-            #template_node = Node.objects.get(pk=template_node_id)
-            template_node.context['include'] = node
-            templates = (
-                f'{request.site.domain}/messycms/node.html',
-                'messycms/node.html',
-            )
-            new_response = render(request, template_name=templates, context={'node': template_node})
-            response.content = new_response.content
-        return response
+        if not node_section:
+            ## Node for current language not found, search global
+            node_section = queryset.get_descendants().filter(type='inclusion_point').first()
+        
+        if node_section and node_section.parent_id and node_section.parent.type == '.conf':
+            if node_section.parent.parent_id and node_section.parent.parent.type == 'content':
+                template_node = node_section.parent.parent
+        
+        return template_node
 
 class DBRouter:
     '''Switching databases based on hostname

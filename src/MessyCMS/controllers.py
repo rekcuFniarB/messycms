@@ -9,6 +9,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import redirect
 from . import plugins
+from .middleware import PluggableExternalAppsWrapper
 
 ## get requested node
 def show_node(request, id=0, path=''):
@@ -36,7 +37,7 @@ def show_node(request, id=0, path=''):
             queryset = site_qs
             if lang_code:
                 queryset = queryset_children(queryset).filter(slug=lang_code, available=True, sites__id=request.site.id)
-            queryset = queryset_descendants(queryset).filter(Q(slug=last_slug) | Q(pk=str2int(last_slug)), sites__id=request.site.id, available=True)
+            queryset = queryset.get_descendants().filter(Q(slug=last_slug) | Q(pk=str2int(last_slug)), sites__id=request.site.id, available=True)
             if queryset.count() > 1:
                 ## TODO show list of matches on 404 page
                 raise Http404(f' Found multiple pages with slug {last_slug}.')
@@ -76,21 +77,29 @@ def show_node(request, id=0, path=''):
     
     #plugins.render(node, request)
     
-    if node.link_id and node.type == 'content' and 'HTTP_X_REQUESTED_WITH' not in request.META:
-        ## If link is defined, we use linked node as template for current
-        node.link.context['include'] = node
-        node = node.link
-    
     if 'HTTP_X_REQUESTED_WITH' in request.META:
+        ## If is ajax request, don't extend base template
         templates = (
             f'{request.site.domain}/messycms/_node.html',
             'messycms/_node.html',
         )
-    else:
+    else: ## { not ajax
         templates = (
             f'{request.site.domain}/messycms/node.html',
             'messycms/node.html',
         )
+        
+        if node.link_id:
+            ## If link is defined, we use linked node as template for current
+            node.link.context['include'] = node
+            node = node.link
+        else:
+            ## Try to use first available template
+            template_node = PluggableExternalAppsWrapper.get_template_node(request)
+            if template_node:
+                template_node.context['include'] = node
+                node = template_node
+    ## } endif nod ajax
     
     return render(request, templates, {'node': node})
 
@@ -116,6 +125,10 @@ def combine_querysets(querysets=[]):
     return queryset
 
 def queryset_descendants(queryset):
+    '''
+    Actually this function is not needed, unlike get_children,
+    you can just use queryset.get_descendants()
+    '''
     if queryset:
         querysets = []
         for item in queryset:
@@ -125,6 +138,9 @@ def queryset_descendants(queryset):
         return queryset
 
 def queryset_children(queryset):
+    '''
+    Get children of queryset.
+    '''
     if queryset:
         querysets = []
         for item in queryset:
