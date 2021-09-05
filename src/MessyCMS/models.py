@@ -205,7 +205,7 @@ else:
             '''
             Real children count, ignores non content type nodes.
             '''
-            return self.get_children().filter(type='content').count()
+            return self.get_children().filter(available=True, type='content').count()
         
         @classmethod
         def get_all_whith_section_type(cls, node_type):

@@ -275,7 +275,7 @@ class ItemsTree(MessyPlugin):
     def execute(self, node, request=None, *args, **kwargs):
         result = {}
         if node.link:
-            items = node.link.get_descendants().filter(available=True, *args, **kwargs)
+            items = node.link.get_descendants().filter(available=True, type='content', *args, **kwargs)
             if items:
                 result = {
                     'templates': templates(node, request),
@@ -307,7 +307,7 @@ class ItemsList(ItemsTree):
             items = node.link.get_children().filter(available=True)
         else:
             ## Using parent if no link defined
-            items = node.parent.parent.get_children().filter(available=True)
+            items = node.parent.parent.get_children().filter(available=True, type='content')
         
         ## If node has "sort" property
         sort = node.prop('sort')
