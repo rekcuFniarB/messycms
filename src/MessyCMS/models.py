@@ -229,9 +229,9 @@ else:
             Text representation for list in admin interfase
             '''
             if self.slug.startswith('.') or self.type.startswith('.'):
-                return self.slug
+                return self.slug or self.type
             else:
-                return '%s: %s' % (self.id, self.title or self.menu_title or self.short or self.slug)
+                return '%s: %s' % (self.id, self.title or self.menu_title or self.short or self.slug or self.type)
         
         ## Types used as property
         property_types = ('.property', '.redirect')

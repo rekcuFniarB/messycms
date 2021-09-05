@@ -45,7 +45,7 @@ class NodeAdmin(DraggableMPTTAdmin):
     
     def delete_model(self, request, obj):
         if not request.user.is_superuser:
-            if obj.author != request.user and obj.group not in request.user.grouops.all():
+            if obj.author != request.user and obj.group not in request.user.groups.all():
                 ## Prevent deleting if no permission
                 raise PermissionDenied
         return super().delete_model(request, obj)
@@ -72,10 +72,46 @@ class NodeAdmin(DraggableMPTTAdmin):
         return form
     
     def get_urls(self):
-        return super().get_urls() + [
+        return [
             path('fields-toggle-maps.json', self.fields_toggle_maps),
             path('nodes-links.json', self.nodes_links),
-        ]
+            path('toggle-available/<int:pk>/', self.toggle_available),
+        ] + super().get_urls()
+    
+    def toggle_available(self, request, pk):
+        if not request.user.is_staff:
+            raise PermissionDenied('For staff only')
+        
+        if request.method != 'POST':
+            raise PermissionDenied('Bad request method.')
+        
+        node = None
+        
+        if pk:
+            try:
+                node = Node.objects.get(pk=pk)
+            except:
+                pass
+        
+        result = {}
+        
+        if node and node.type == 'content':
+            if not request.user.is_superuser and node.author != request.user and node.group not in request.user.groups.all():
+                ## Prevent deleting if no permission
+                raise PermissionDenied
+            
+            result['change'] = [node.available]
+            
+            if node.available:
+                node.available = False
+            else:
+                node.available = True
+            
+            result['change'].append(node.available)
+            
+            node.save()
+        
+        return JsonResponse({"succes": bool(node), 'result': result})
     
     def fields_toggle_maps(self, request):
         if not request.user.is_staff:
@@ -103,7 +139,7 @@ class NodeAdmin(DraggableMPTTAdmin):
             
             result.append({
                 'title': f'{"." * item.level} {str(item)}',
-                'value': reverse('messycms-node-by-path', kwargs={'path': item.id}),
+                'value': reverse('messycms:node-by-path', kwargs={'path': item.id}),
                 'data-node-id': f'{item.id}'
             })
         
@@ -115,6 +151,9 @@ class NodeAdmin(DraggableMPTTAdmin):
             ## Include this script in admin interface.
             'messycms/js/admin.js',
         ]
+        css = {
+            'all': ('messycms/css/admin.css',)
+        }
         if 'tinymce' in settings.INSTALLED_APPS:
             js.append('tinymce/tinymce.min.js')
         else:

@@ -35,6 +35,7 @@ setuptools.setup(
         'MessyCMS.plugins.tgimages',
         'MessyCMS.plugins.tgimages.templates.tgimages',
         'MessyCMS.static.messycms.js',
+        'MessyCMS.static.messycms.css',
         'MessyCMS.templatetags',
         'MessyCMS.templates',
         'MessyCMS.templates.messycms',

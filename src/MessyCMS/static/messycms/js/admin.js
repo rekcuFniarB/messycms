@@ -149,6 +149,52 @@ function MessyCMSAdmin() {
         }
     };
     
+    this.toggleAvailable = function(event) {
+        if (event.target.nodeName == 'IMG') {
+            // Availability indicator icon was clicked
+            var pk = null
+            var tr = event.target.parentElement.parentElement;
+            if (tr.nodeName == 'TR') {
+                var node = tr.querySelector('[data-pk]');
+                if (node) {
+                    pk = node.dataset.pk
+                }
+            }
+            if (pk) {
+                var csrf = '';
+                var csrfField = document.querySelector('[name="csrfmiddlewaretoken"]');
+                if (csrfField) {
+                    csrf = csrfField.value;
+                }
+                fetch(`${This.baseURL}toggle-available/${pk}/`, {
+                    method: 'POST',
+                    body: new URLSearchParams(`csrfmiddlewaretoken=${csrf}`)
+                }).then((response) => {
+                    try {
+                        return response.json();
+                    } catch (error) {
+                        console.error('ERROR:', error);
+                    }
+                }).then((data) => {
+                    fetch(This.baseURL).then((response) => { return response.text(); }).then((content) => {
+                        var newContent = document.createElement('div');
+                        newContent.innerHTML = content;
+                        var newNode = newContent.querySelector(`[data-pk="${pk}"]`)
+                        if (newNode) {
+                            newTr = newNode.parentElement.parentElement;
+                            if (newTr.nodeName == 'TR') {
+                                // Updating old tr
+                                tr.innerHTML = newTr.innerHTML;
+                            }
+                        }
+                    });
+                }).catch((error) => {
+                    console.error(error);
+                });
+            }
+        }
+    }; // toggleAvailable()
+    
     if (this.typeField) {
         this.typeField.addEventListener('change', (event) => {this.toggleFields();});
         
@@ -161,7 +207,7 @@ function MessyCMSAdmin() {
         this.toggleFields();
     }
     
-    if (typeof window.tinymce === 'object') {
+    if (typeof window.tinymce === 'object' && this.contentField) {
         this.toggleWysiwygCheckbox = document.getElementById('id_toggle_wysiwyg');
         if (!this.toggleWysiwygCheckbox) {
             let toggleWysiwygCheckboxHtml = `<input type="checkbox" id="id_toggle_wysiwyg">
@@ -173,6 +219,12 @@ function MessyCMSAdmin() {
             this.toggleWysiwygCheckbox = document.getElementById('id_toggle_wysiwyg');
             this.toggleWysiwygCheckbox.addEventListener('change', this.toggleWysiwyg);
         }
+    }
+    
+    // Checking if we are at right pate
+    var tAvailable = document.querySelector('#result_list .field-available img')
+    if (tAvailable) {
+        document.getElementById('result_list').addEventListener('click', this.toggleAvailable);
     }
 }
 
