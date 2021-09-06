@@ -96,6 +96,7 @@ plugins_list = [
         ('ItemsList', 'Items list'),
         ('IncludeItem', 'Inclue item'),
         ('.property', 'Property'),
+        ('.modelItem', 'Model item'),
         ('.redirect', 'Redirect'),
         ('.conf', 'Node config directory'),
         ('inclusion_point', 'Inclusion point'),

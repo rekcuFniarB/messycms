@@ -40,6 +40,7 @@ setuptools.setup(
         'MessyCMS.templates',
         'MessyCMS.templates.messycms',
         'MessyCMS.templates.messycms.blocks',
+        'MessyCMS.templates.messycms.admin',
     ],
     package_data={
         '': ['*.conf', '*.md', '*.txt', '*.html', '*.js', '*.css', 'etc/*']

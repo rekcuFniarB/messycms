@@ -12,6 +12,10 @@ function MessyCMSAdmin() {
         return URL;
     })();
     
+    this.field = (function(field) {
+        return document.getElementById(`id_${field}`);
+    }).bind(this);
+    
     this.show = function(element, show) {
         if (typeof show === 'undefined') show = true;
         
@@ -61,13 +65,13 @@ function MessyCMSAdmin() {
     
     this.fieldsToggleMaps = undefined;
     
-    this.toggleFields = function(fieldsToggleMaps) {
+    this.toggleFields = function(event, fieldsToggleMaps) {
         if (typeof fieldsToggleMaps === 'undefined') {
             // Get fields maps for curreyt type
             fetch(`${this.baseURL}fields-toggle-maps.json?field=${This.typeField.value}`).then((response) => {
                 return response.json();
             }).then((data) => {
-                This.toggleFields(data);
+                This.toggleFields(event, data);
             });
             // Run request and exit. This function will be called again when request is complete.
             return;
@@ -114,7 +118,128 @@ function MessyCMSAdmin() {
                 this.show(row, true);
             }
         }
+        
+        var shortField = this.field('short');
+        if (event.target.value == '.modelItem' && !shortField.clickEventAdded) {
+            shortField.addEventListener('click', this.selectModel);
+            shortField.clickEventAdded = true;
+        }
     }; // toggleFields()
+    
+    this.selectModel = (function(event) {
+        if (this.typeField.value == '.modelItem') {
+            var parsedValue = event.target.value.split('=');
+            var urlParams = parsedValue.join('/');
+            if (!!urlParams) {
+                urlParams += '/';
+            }
+            fetch(`${This.baseURL}select-model-modal/${urlParams}`).then((response) => {
+                return response.text();
+            }).then((response) => {
+                // Open modal with response
+                this.modal.open(response).then(this.updateSelectModelField);
+                var modelField = this.field('model_name');
+                if (modelField && !modelField.eventAdded) {
+                    modelField.addEventListener('change', this.onModelSelect);
+                    modelField.eventAdded = true;
+                }
+            }).catch((error) => {
+                console.error(error);
+                this.modal.open(error);
+            });
+        }
+    }).bind(this);
+    
+    this.onModelSelect = (function(event) {
+        var valueField = this.field('short');
+        var oldValues = valueField.value.split('=');
+        oldValues[0] = event.target.value;
+        valueField.value = oldValues.join('=');
+        
+        if (!!event.target.value) {
+            // Triggering click event to refresh popup content.
+            valueField.click();
+        }
+    }).bind(this);
+    
+    this.updateSelectModelField = (function(target){
+        var modelField = this.field('model_name');
+        var modelItemIdField = this.field('model_item_id');
+        var values = [];
+        if (modelField && modelItemIdField) {
+            values = [modelField.value, modelItemIdField.value];
+        }
+        var valueField = this.field('short');
+        valueField.value = values.join('=');
+        valueField.focus();
+    }).bind(this);
+    
+    this.modal = document.createElement('div');
+    this.modal.open = (function(content) {
+        if (!this.classList.contains('messy-modal')) {
+            // Opening for first time, do init.
+            this.classList.add('messy-modal');
+            this.wrapper = document.createElement('div');
+            this.wrapper.classList.add('messy-modal-wrapper', 'messy-d-none');
+            document.body.append(this.wrapper);
+            this.wrapper.append(this);
+            
+            // Close popup and resolve promise with value
+            this.close = (function(value) {
+                this.show(false);
+                if (typeof this._resolve === 'function') {
+                    this._resolve(value);
+                }
+            }).bind(this);
+            
+            // Close on clicks outside of modal window.
+            this.wrapper.addEventListener('click', (event) => {
+                if (event.target.classList.contains('messy-modal-wrapper')) {
+                    this.close();
+                }
+            });
+            
+            // Close on Escape button press
+            document.body.addEventListener('keyup', (event) => {
+                if (event.key && event.key == 'Escape') {
+                    this.close();
+                }
+            });
+            
+            this.show = (function(show) {
+                if (show) {
+                    this.wrapper.classList.replace('messy-d-none', 'messy-d-block');
+                    this.wrapper.style.height = `${document.body.scrollHeight}px`;
+                    // Calculate top
+                    var modalTop = (window.innerHeight - This.modal.offsetHeight) / 2;
+                    var modalLeft = (window.innerWidth - This.modal.offsetWidth) / 2;
+                    this.style.top = `${modalTop}px`;
+                    this.style.left = `${modalLeft}px`;
+                } else {
+                    this.wrapper.classList.replace('messy-d-block', 'messy-d-none');
+                }
+            }).bind(this);
+        } // if was not "messy-modal" class (end of init on first time invokation)
+        
+        if (!!content) {
+            this.innerHTML = '';
+            if (typeof content == 'object') {
+                this.append(object);
+            }
+            else if (typeof content == 'string') {
+                this.innerHTML = content;
+            }
+        }
+        
+        // If was closed, create new promise
+        if (this.wrapper.classList.contains('messy-d-none')) {
+            this._promise = new Promise((resolve, reject) => {this._resolve = resolve;});
+        }
+        
+        this.show(true);
+        
+        return this._promise;
+    }).bind(this.modal);
     
     this.toggleWysiwyg = function(event) {
         if (event.target.checked) {
@@ -196,7 +321,7 @@ function MessyCMSAdmin() {
     }; // toggleAvailable()
     
     if (this.typeField) {
-        this.typeField.addEventListener('change', (event) => {this.toggleFields();});
+        this.typeField.addEventListener('change', (event) => {this.toggleFields(event);});
         
         //fetch(`${this.baseURL}fields-toggle-maps.json`).then((response) => {
         //    return response.json();
@@ -204,7 +329,7 @@ function MessyCMSAdmin() {
         //    This.fieldsToggleMaps = data;
         //    This.toggleFields();
         //});
-        this.toggleFields();
+        this.toggleFields({target: this.typeField});
     }
     
     if (typeof window.tinymce === 'object' && this.contentField) {
@@ -231,3 +356,17 @@ function MessyCMSAdmin() {
 window.addEventListener('load', function() {
     MessyCMSAdmin.instance = new MessyCMSAdmin();
 });
+
+if (typeof Element.prototype.findParent === 'undefined') {
+    Element.prototype.findParent = function(match) {
+        var found = null;
+        var current = this;
+        while (!found && !!current && !!current.parentElement) {
+            current = current.parentElement;
+            if (match(current)) {
+                found = current;
+            }
+        }
+        return found;
+    };
+}

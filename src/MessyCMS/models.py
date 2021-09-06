@@ -175,7 +175,7 @@ else:
             
             return reverse_url
         
-        def get_from_model(self, model_name, id):
+        def get_from_model(self, model_name, id=0):
             if type(model_name) is str:
                 model_defined = False
                 for app in settings.INSTALLED_APPS:
@@ -193,7 +193,11 @@ else:
             else:
                 model = model_name
             
-            return model.objects.get(pk=id)
+            if id:
+                result = model.objects.get(pk=id)
+            else:
+                result = model.objects.all()
+            return result
         
         def is_template_block(self):
             '''
@@ -242,6 +246,14 @@ else:
                 {'field': 'slug', 'label': 'Property name'},
                 {'field': 'short', 'label': 'Short value'},
                 {'field': 'content', 'label': 'Long Value', 'help': 'JSON allowed. If empty, "short value" will be used.'},
+                'parent',
+                'type',
+                'id',
+            ),
+            '.modelItem': (
+                {'field': 'slug', 'label': 'Property name'},
+                {'field': 'short', 'label': 'Value', 'help': 'Value format: app.model=id'},
+                #{'field': 'content', 'label': 'Long Value', 'help': 'JSON allowed. If empty, "short value" will be used.'},
                 'parent',
                 'type',
                 'id',

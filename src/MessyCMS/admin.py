@@ -11,6 +11,9 @@ import json
 from django.core.exceptions import PermissionDenied
 #from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Q
+from django import forms
+from django.shortcuts import render
+from django.apps import apps
 
 # Register your models here.
 
@@ -76,9 +79,15 @@ class NodeAdmin(DraggableMPTTAdmin):
             path('fields-toggle-maps.json', self.fields_toggle_maps),
             path('nodes-links.json', self.nodes_links),
             path('toggle-available/<int:pk>/', self.toggle_available),
+            path('select-model-modal/', self.select_model_modal),
+            path('select-model-modal/<str:model_name>/', self.select_model_modal),
+            path('select-model-modal/<str:model_name>/<str:item_id>/', self.select_model_modal),
         ] + super().get_urls()
     
     def toggle_available(self, request, pk):
+        '''
+        Ajax request to toggle node availability.
+        '''
         if not request.user.is_staff:
             raise PermissionDenied('For staff only')
         
@@ -114,6 +123,10 @@ class NodeAdmin(DraggableMPTTAdmin):
         return JsonResponse({"succes": bool(node), 'result': result})
     
     def fields_toggle_maps(self, request):
+        '''
+        Ajax request for fields mappings.
+        '''
+        
         if not request.user.is_staff:
             raise PermissionDenied
         field = request.GET.get('field', '')
@@ -123,6 +136,34 @@ class NodeAdmin(DraggableMPTTAdmin):
         else:
             fields_maps = Node.fields_toggle
         return JsonResponse(fields_maps)
+    
+    def select_model_modal(self, request, model_name='', item_id=''):
+        '''
+        Invoked by ajax request for popup form.
+        '''
+        
+        if not request.user.is_staff:
+            raise PermissionDenied
+        
+        model_items_choices = [('', '')]
+        ## Filling ids choices for selected model.
+        if model_name:
+            model_qs = Node.get_from_model(None, model_name)
+            for item in model_qs:
+                model_items_choices.append((item.pk, f'{item.pk}: {str(item)}'))
+        
+        form = modelItemForm({
+            'model_name': model_name,
+            'model_item_id': item_id
+        })
+        
+        form.fields['model_item_id'].choices = model_items_choices
+        
+        return render(
+            request,
+            'messycms/admin/select_model_modal.html',
+            {'form': form}
+        )
     
     #@staff_member_required
     def nodes_links(self, request):
@@ -158,6 +199,19 @@ class NodeAdmin(DraggableMPTTAdmin):
             js.append('tinymce/tinymce.min.js')
         else:
             js.append(f'https://cdn.tiny.cloud/1/{getattr(settings, "TinyMCE_API_Key", "no-api-key")}/tinymce/5/tinymce.min.js')
+
+## Select model form for popup
+class modelItemForm(forms.Form):
+    def get_installed_models():
+        result = [('', '-')]
+        ## Getting list of available models
+        for app_name, app_models in apps.all_models.items():
+            for model_name, model in app_models.items():
+                result.append((f'{model.__module__}.{model.__name__}', f'{app_name}/{model_name}'))
+        return result
+    
+    model_name = forms.ChoiceField(required=False, choices=get_installed_models)
+    model_item_id = forms.ChoiceField(required=False, choices=[('', '')])
 
 #admin.site.register(
     #Node,
