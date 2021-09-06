@@ -107,7 +107,7 @@ else:
                                     if '=' in value:
                                         parsed_model = value.split('=')
                                         try:
-                                            value = self.get_from_model(parsed_model[0], int(parsed_model[1]))
+                                            value = self.get_from_model(parsed_model[0], parsed_model[1])
                                         except:
                                             pass
                                     
@@ -238,7 +238,7 @@ else:
                 return '%s: %s' % (self.id, self.title or self.menu_title or self.short or self.slug or self.type)
         
         ## Types used as property
-        property_types = ('.property', '.redirect')
+        property_types = ('.property', '.redirect', '.modelItem')
         
         ## Fields visibility in admin.
         fields_toggle = {
