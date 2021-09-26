@@ -36,7 +36,8 @@ class MessyPlugin:
             'templates': templates(node, request),
             'context': {
                 'nodes': [node],
-                'node': node
+                'node': node,
+                'request': request
             },
             'content': ''
         }
@@ -159,7 +160,7 @@ def render(node, requestContext):
                 rendered_string += render_to_string(
                     templates(node, requestContext.request),
                     node.content,
-                    {'node': node.parent.parent},
+                    {'node': node.parent.parent, 'request': requestContext.request},
                     requestContext.request
                 )
             else:
@@ -167,7 +168,7 @@ def render(node, requestContext):
                 rendered_string += render_to_string(
                     templates(node, requestContext.request),
                     node.content,
-                    {'node': node},
+                    {'node': node, 'request': requestContext.request},
                     requestContext.request
                 )
         ## }
@@ -282,7 +283,8 @@ class ItemsTree(MessyPlugin):
                     'templates': templates(node, request),
                     'context': {
                         'nodes': items,
-                        'node': node
+                        'node': node,
+                        'request': request
                     }
                 }
                 node.context.update(result['context'])
@@ -342,7 +344,8 @@ class ItemsList(ItemsTree):
                 'templates': templates(node, request),
                 'context': {
                     'nodes': items,
-                    'node': node
+                    'node': node,
+                    'request': request
                 }
             }
             node.context.update(result['context'])
@@ -360,7 +363,8 @@ class IncludeItem(ItemsTree):
                 'templates': templates(node, request),
                 'context': {
                     'nodes': [node.link],
-                    'node': node
+                    'node': node,
+                    'request': request
                 }
             }
             node.context.update(result['context'])
