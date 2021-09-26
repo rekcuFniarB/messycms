@@ -1,5 +1,12 @@
     {% include node %}
     
+    <script class="section-metadata" type="text/html">
+        <div data-field="title">{{ node.title }}</div>
+        <div data-field="slug">{{ node.slug }}</div>
+        <div data-field="short">{{ node.short }}</div>
+        <div data-field="menu_title">{{ node.menu_title }}</div>
+    </script>
+    
     {% for section in node.conf %}
         {% if section.type == 'inclusion_point' and node.context.include %}
             {# recurse #}
