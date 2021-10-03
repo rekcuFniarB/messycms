@@ -126,6 +126,10 @@ def render(node, requestContext):
     
     available_plugins = dict(plugins_list)
     
+    if 'allnodes' in requestContext:
+        ## For postprocessing
+        requestContext['allnodes'].append(node)
+    
     rendered_string = ''
     if settings.DEBUG:
         rendered_string = f'<!-- block id: {node.id}; type: {node.type} -->\n'

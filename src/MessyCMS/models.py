@@ -19,6 +19,8 @@ if hasattr(settings, 'MESSYCMS_BASE_MODEL'):
 else:
     class Node(MPTTModel):
         __conf = None
+        __rendered = ''
+        
         title = models.CharField(max_length=255, default='', blank=True)
         ## Custom title to show in menu
         menu_title = models.CharField(max_length=255, default='', blank=True)
@@ -140,11 +142,18 @@ else:
             '''
             return getattr(self.conf, name, default)
         
-        def render(self, requestContext):
+        def render(self, requestContext, *args, **kwargs):
             '''
             Lazy content rendering, called from template by {% include %} tag
             '''
-            return plugins.render(self, requestContext)
+            if not self.__rendered:
+                self.__rendered = plugins.render(self, requestContext)
+            
+            if self.append_to() and 'allnodes' in requestContext:
+                ## If node rendering should be deferred
+                return ''
+            else:
+                return self.__rendered
         
         def get_absolute_url(self):
             '''
@@ -199,11 +208,16 @@ else:
                 result = model.objects.all()
             return result
         
-        def is_template_block(self):
+        def append_to(self):
             '''
-            Bool: is this node for template block?
+            If this node is for appending to particular HTML element, return than HTML element name
             '''
-            return self.slug.strip('.').startswith('template-block-')
+            append_to = ''
+            stripped_slug = self.slug.strip('.')
+            if stripped_slug.startswith('append-to-'):
+                append_to = stripped_slug.replace('append-to-', '')
+                append_to = f'</{append_to}>'
+            return append_to.encode('utf-8') ## bytes
         
         def children_count(self):
             '''

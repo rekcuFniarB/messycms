@@ -81,17 +81,22 @@ def show_node(request, id=0, path=''):
     
     #plugins.render(node, request)
     
-    if 'HTTP_X_REQUESTED_WITH' in request.META:
-        ## If is ajax request, don't extend base template
-        templates = (
+    templates = {
+        'internal': (
             f'{request.site.domain}/messycms/_node.html',
             'messycms/_node.html',
-        )
-    else: ## { not ajax
-        templates = (
+        ),
+        'full': (
             f'{request.site.domain}/messycms/node.html',
             'messycms/node.html',
         )
+    }
+    
+    if 'HTTP_X_REQUESTED_WITH' in request.META:
+        ## If is ajax request, don't extend base template
+        template_type = 'internal'
+    else: ## { not ajax
+        template_type = 'full'
         
         if node.link_id:
             ## If link is defined, we use linked node as template for current
@@ -105,7 +110,22 @@ def show_node(request, id=0, path=''):
                 node = template_node
     ## } endif nod ajax
     
-    return render(request, templates, {'node': node})
+    context = {'node': node, 'allnodes': []}
+    ## "allnodes" will contain all rendered subnodes
+    
+    response = render(request, templates[template_type], context)
+    
+    if response.headers.get('Content-Type', '').startswith('text/html'):
+        ## Inserting deferred nodes.
+        ## For example, if node has slug "append-to-head"
+        ## it will be appended to <head> element (inserted before closing </head> tag).
+        for node in context['allnodes']:
+            append_to = node.append_to()
+            if append_to:
+                append_render = render(request, templates['internal'], {'node': node})
+                response.content = response.content.replace(append_to, append_render.content + append_to)
+    
+    return response
 
 def str2int(string):
     try:
