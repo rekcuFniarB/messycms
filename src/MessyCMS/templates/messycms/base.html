@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}{% endblock %}</title>
+        {% block head %}{% endblock %}
+    </head>
+    <body {% block bodyattrs %}{% endblock %}>
+        {% block body %}{% endblock %}
+        
+        {% block bodyend %}{% endblock %}
+    </body>
+</html>
+{# Minibal base template example. #}
