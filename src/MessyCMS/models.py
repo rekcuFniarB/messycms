@@ -21,6 +21,13 @@ else:
         __conf = None
         __rendered = ''
         
+        ## Node type
+        type = models.CharField(
+            max_length = 255,
+            choices = plugins.plugins_list,
+            default = plugins.plugins_list[0][0],
+            verbose_name = 'Type'
+        )
         title = models.CharField(max_length=255, default='', blank=True)
         ## Custom title to show in menu
         menu_title = models.CharField(max_length=255, default='', blank=True)
@@ -28,12 +35,6 @@ else:
         short = models.CharField(max_length=255, default='', blank=True)
         ## Not not using SlugField and not making it unique because it may appear with same name in 
         ## different tree level. Instead we prepare it in self.save().
-        type = models.CharField(
-            max_length = 255,
-            choices = plugins.plugins_list,
-            default = plugins.plugins_list[0][0],
-            verbose_name = 'Type'
-        )
         node_class = models.CharField(max_length=255, default='', blank=True)
         author = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
         group = models.ForeignKey(Group, on_delete=models.SET_NULL, blank=True, null=True)
