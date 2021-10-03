@@ -282,16 +282,25 @@ class ItemsTree(MessyPlugin):
         result = {}
         if node.link:
             items = node.link.get_descendants().filter(available=True, type='content', *args, **kwargs)
-            if items:
-                result = {
-                    'templates': templates(node, request),
-                    'context': {
-                        'nodes': items,
-                        'node': node,
-                        'request': request
-                    }
+        else:
+            ## Using parent if no link defined
+            items = node.parent.parent.get_children().filter(available=True, type='content', *args, **kwargs)
+        
+        ## If node has "filter" property
+        prop_filter = node.prop('filter')
+        if type(prop_filter) is dict:
+            items = items.filter(**prop_filter)
+        
+        if items:
+            result = {
+                'templates': templates(node, request),
+                'context': {
+                    'nodes': items,
+                    'node': node,
+                    'request': request
                 }
-                node.context.update(result['context'])
+            }
+            node.context.update(result['context'])
         
         return result
     
@@ -315,6 +324,11 @@ class ItemsList(ItemsTree):
         else:
             ## Using parent if no link defined
             items = node.parent.parent.get_children().filter(available=True, type='content')
+        
+        ## If node has "filter" property
+        prop_filter = node.prop('filter')
+        if type(prop_filter) is dict:
+            items = items.filter(**prop_filter)
         
         ## If node has "sort" property
         sort = node.prop('sort')
