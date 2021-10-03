@@ -151,11 +151,8 @@ MessyCMS = function() {
                 if (show) {
                     this.wrapper.classList.replace('messy-d-none', 'messy-d-block');
                     this.wrapper.style.height = `${document.body.scrollHeight}px`;
-                    // Calculate top
-                    var modalTop = (window.innerHeight - This.modal.offsetHeight) / 2;
-                    var modalLeft = (window.innerWidth - This.modal.offsetWidth) / 2;
-                    this.style.top = `${modalTop}px`;
-                    this.style.left = `${modalLeft}px`;
+                    // Center
+                    this.centerVertically(window).centerHorizontally(window);
                 } else {
                     this.wrapper.classList.replace('messy-d-block', 'messy-d-none');
                 }
@@ -214,6 +211,46 @@ MessyCMS = function() {
                 }
             }
             return found;
+        };
+    }
+    
+    if (typeof Element.prototype.centerVertically === 'undefined') {
+        Element.prototype.centerVertically = function(parent) {
+            if (typeof parent === 'undefined') {
+                parent = this.parentElement;
+            }
+            if (!!parent) {
+                var parentHeight;
+                if (typeof parent.innerHeight !== 'undefined') {
+                    // It is window
+                    parentHeight = parent.innerHeight;
+                } else {
+                    parentHeight = parent.offsetHeight;
+                }
+                var top = (parentHeight - this.offsetHeight) / 2;
+                this.style.top = `${top}px`;
+            }
+            return this;
+        };
+    }
+    
+    if (typeof Element.prototype.centerHorizontally === 'undefined') {
+        Element.prototype.centerHorizontally = function(parent) {
+            if (typeof parent === 'undefined') {
+                parent = this.parentElement;
+            }
+            if (!!parent) {
+                var parentWidth;
+                if (typeof parent.innerWidth !== 'undefined') {
+                    // It is window
+                    parentWidth = parent.innerWidth;
+                } else {
+                    parentWidth = parent.offsetWidth;
+                }
+                var left = (parentWidth - this.offsetWidth) / 2;
+                this.style.left = `${left}px`;
+            }
+            return this;
         };
     }
 }
