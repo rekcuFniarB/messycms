@@ -191,6 +191,7 @@ class NodeAdmin(DraggableMPTTAdmin):
         js = [
             ## Include this script in admin interface.
             'messycms/js/admin.js',
+            'messycms/js/messycms.js',
         ]
         css = {
             'all': ('messycms/css/admin.css',)
