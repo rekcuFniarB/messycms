@@ -172,16 +172,27 @@ else:
                     
                     slugs.append(slugify(slug, allow_unicode=True))
             
+            lang_node = ''
+            
             if len(slugs):
                 if 'django.middleware.locale.LocaleMiddleware' in settings.MIDDLEWARE:
                     if slugs[0] in dict(settings.LANGUAGES):
                         ## Throwing away language prefix from url, because
                         ## that middleware prepends it too.
+                        lang_node = slugs[0]
                         del(slugs[0])
+            
             if len(slugs):
                 reverse_url = reverse('messycms:node-by-path', kwargs={'path': '/'.join(slugs)})
             else:
                 reverse_url = reverse('messycms:root-path')
+            
+            if lang_node:
+                ## LocaleMiddleware prepends current language to url.
+                ## But we need actual language of node.
+                l_reverse_url = reverse_url.split('/')
+                l_reverse_url[1] = lang_node
+                reverse_url = '/'.join(l_reverse_url)
             
             return reverse_url
         
