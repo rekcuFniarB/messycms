@@ -179,6 +179,33 @@ MessyCMS = function() {
         return this._promise;
     }).bind(this.modal);
     
+    this.storage = new function() {
+        this.get = (function(name, defaultVal) {
+            var result;
+            if (typeof defaultVal == 'undefined') {
+                defaultVal = null;
+            }
+            try {
+                result = window.localStorage.getItem(name);
+            }
+            catch (error) {
+                console.error('Local Storage:', error);
+            }
+            if (!result) {
+                result = defaultVal;
+            }
+            return result;
+        }).bind(this.storage);
+        this.set = (function(name, value) {
+            try {
+                window.localStorage.setItem(name, value);
+            }
+            catch(error) {
+                console.error('Local Storage:', error);
+            }
+        }).bind(this.storage);
+    }
+    
     // Init
     // Extending Element class with our methods
     if (typeof Element.prototype.recalcHeight === 'undefined') {
