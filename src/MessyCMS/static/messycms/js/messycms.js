@@ -204,6 +204,14 @@ MessyCMS = function() {
                 console.error('Local Storage:', error);
             }
         }).bind(this.storage);
+        this.delete = (function(name) {
+            try {
+                window.localStorage.removeItem(name);
+            }
+            catch (error) {
+                console.error('Local Storage:', error);
+            }
+        }).bind(this.storage);
     }
     
     // Init
@@ -225,6 +233,20 @@ MessyCMS = function() {
             
             return this;
         };
+    }
+    
+    if (typeof Element.prototype.stretchToParentHeight === 'undefined') {
+        Element.prototype.stretchToParentHeight = function() {
+            if (!!this.parentElement) {
+                this.style.minHeight = `${this.parentElement.offsetHeight}px`;
+                if (typeof this.__stretchToParentHeight === 'undefined') {
+                    this.__stretchToParentHeight = true;
+                    This.events.add(window, 'resize', this.stretchToParentHeight.bind(this), 'recalcHeight');
+                    This.events.add(window, 'load', this.stretchToParentHeight.bind(this), 'recalcHeight');
+                }
+            }
+            return this;
+        }
     }
     
     if (typeof Element.prototype.findParent === 'undefined') {
