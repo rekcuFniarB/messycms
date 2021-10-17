@@ -97,6 +97,7 @@ plugins_list = [
         ('ItemsList', 'Items list'),
         ('IncludeItem', 'Inclue item'),
         ('.property', 'Property'),
+        ('.ext-template', 'External stored template'),
         ('.modelItem', 'Model item'),
         ('.redirect', 'Redirect'),
         ('.conf', 'Node config directory'),
@@ -147,7 +148,7 @@ def render(node, requestContext):
                     ## file based list of templates to try
                     result.get('templates', ()),
                     ## db based template
-                    getattr(node.conf, 'template', node.content),
+                    node.get_stored_template(),
                     result.get('context', node.context),
                     requestContext.request
                 )
@@ -163,7 +164,7 @@ def render(node, requestContext):
                 ## name and rendered with parent context
                 rendered_string += render_to_string(
                     templates(node, requestContext.request),
-                    node.content,
+                    node.get_stored_template(),
                     {'node': node.parent.parent, 'request': requestContext.request},
                     requestContext.request
                 )
@@ -171,7 +172,7 @@ def render(node, requestContext):
                 node.content = mark_safe(node.content)
                 rendered_string += render_to_string(
                     templates(node, requestContext.request),
-                    node.content,
+                    node.get_stored_template(),
                     {'node': node, 'request': requestContext.request},
                     requestContext.request
                 )

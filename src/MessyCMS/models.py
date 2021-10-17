@@ -46,7 +46,7 @@ else:
         parent = TreeForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
         ## Link to tree part, may be used in blocks
         link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True,
-            help_text='Template node to insert into.', verbose_name='Template')
+            help_text='Template node to insert into.', verbose_name='Parent template')
         sites = models.ManyToManyField(Site, null=True, blank=True)
         
         ## Storage for computed data.
@@ -94,16 +94,21 @@ else:
                     self.__conf = self.__conf.get_children()
                     for item in self.__conf:
                         ## Preparing content properties
-                        name = plugins.slug2name(item.slug)
+                        name = ''
+                        if item.property_field_allowed('slug'):
+                            name = plugins.slug2name(item.slug)
                         type_name = plugins.slug2name(item.type)
                         if not name:
-                            name = plugins.slug2name(type_name)
+                            name = type_name
                         
                         if name:
                             if item.type in self.property_types:
-                                value = item.content.strip()
+                                value = ''
                                 
-                                if not value:
+                                if item.property_field_allowed('content'):
+                                    value = item.content.strip()
+                                
+                                if not value and item.property_field_allowed('short'):
                                     value = item.short.strip()
                                 
                                 if value:
@@ -122,7 +127,7 @@ else:
                                             pass
                                     
                                     setattr(self.__conf, name, value)
-                                elif item.link_id:
+                                elif item.link_id and item.property_field_allowed('link'):
                                     setattr(self.__conf, name, item.link)
                                 else:
                                     setattr(self.__conf, name, None)
@@ -264,7 +269,7 @@ else:
                 return '%s: %s' % (self.id, self.title or self.menu_title or self.short or self.slug or self.type)
         
         ## Types used as property
-        property_types = ('.property', '.redirect', '.modelItem')
+        property_types = ('.property', '.redirect', '.modelItem', '.ext-template')
         
         ## Fields visibility in admin.
         fields_toggle = {
@@ -272,6 +277,12 @@ else:
                 {'field': 'slug', 'label': 'Property name'},
                 {'field': 'short', 'label': 'Short value'},
                 {'field': 'content', 'label': 'Long Value', 'help': 'JSON allowed. If empty, "short value" will be used.'},
+                'parent',
+                'type',
+                'id',
+            ),
+            '.ext-template': (
+                {'field': 'link', 'label': 'External template node', 'help': 'Select node to use as template for rendering this node.'},
                 'parent',
                 'type',
                 'id',
@@ -303,6 +314,26 @@ else:
                 'id',
             ),
         }
+        
+        def property_field_allowed(self, field):
+            '''If field is allowed for this node of type property.'''
+            result = False
+            if self.type in self.fields_toggle:
+                fields = tuple(filter(lambda x: (type(x) is dict and x['field'] == field) or x == 'field', self.fields_toggle[self.type]))
+                result = len(fields) > 0
+            return result
+        
+        def get_stored_template(self):
+            template = ''
+            ext_template = self.prop('extTemplate')
+            
+            if ext_template and ext_template.link_id:
+                template = ext_template.link.content
+            else:
+                template = self.prop('template', self.content)
+            
+            return template
+        
 
 #class PageConf():
     #__data__ = None
