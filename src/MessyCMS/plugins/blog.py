@@ -17,10 +17,17 @@ class ItemslistCursorPaginated(plugins.ItemsList):
         }
         
         if node.link:
-            items = node.link.get_children().filter(available=True)
+            items = node.link.get_descendants()
         else:
             ## Using parent if no link defined
-            items = node.parent.parent.get_children().filter(available=True)
+            items = node.parent.parent.get_descendants()
+        
+        items = items.filter(available=True, type='content', parent__type='content')
+        
+        ## If node has "filter" property
+        prop_filter = node.prop('filter')
+        if type(prop_filter) is dict:
+            items = items.filter(**prop_filter)
         
         items = items.order_by('-timestamp', '-id')
         limit = int(node.prop('limit', 10))
