@@ -11,32 +11,32 @@ from django.shortcuts import redirect
 from . import plugins
 from .middleware import PluggableExternalAppsWrapper
 
-def find_node(request):
+def find_node(request, path=''):
     '''
     Find node by request
+        request: Request object
+        path: string (optional, by default request.path will be used)
     '''
-    path = request.path.strip('/')
+    if path:
+        path = path.strip('/')
+    else:
+        path = request.path.strip('/')
+    
     slug_list = [x for x in path.split('/') if x]
     last_slug = slug_list[-1]
     lang_code = getattr(request, 'LANGUAGE_CODE', None)
-    lang_code_fallback = getattr(settings, 'LANGUAGE_CODE', 'en')
-    
-    qs = Node.objects.filter(parent_id=None, available=True, sites__id=request.site.id)
+    qs = get_root_node_queryset(request)
     
     for k, v in enumerate(slug_list):
-        if k == 0 and lang_code and lang_code == v:
-            ## children of requested lang node
-            qs = qs.get_descendants().filter(Q(slug=lang_code) | Q(slug=lang_code_fallback), level=k+1, available=True, sites__id=request.site.id, type='content')
-            qs = qs.annotate(lang_order=Case(When(slug=lang_code, then=3), When(slug=lang_code_fallback, then=2))).order_by('-lang_order').first().get_descendants(include_self=True)
-        else:
+        if k > 0:
             qs = qs.get_descendants().filter(Q(slug=v) | Q(pk=str2int(v)), level=k+1, available=True, type='content', sites__id=request.site.id)
     
-    if settings.DEBUG:
-        try:
-            ## It fails sometimes
-            print('SQL:', qs.query)
-        except Exception as e:
-            print('ERROR: could not print query:', e)
+    #if settings.DEBUG:
+        #try:
+            ### It fails sometimes
+            #print('SQL:', qs.query)
+        #except Exception as e:
+            #print('ERROR: could not print query:', e)
     
     node = qs.first()
     
@@ -49,13 +49,53 @@ def find_node(request):
         if parents_all == parents_available:
             node = qs.first()
         
-        if settings.DEBUG:
-            try:
-                print('ANY NODE SQL:', qs.query)
-            except Exception as e:
-                print('ERROR: could not print query:', e)
+        #if settings.DEBUG:
+            #try:
+                #print('ANY NODE SQL:', qs.query)
+            #except Exception as e:
+                #print('ERROR: could not print query:', e)
     return node
 
+def get_root_node_queryset(request):
+    '''
+    Searches for current site and language root node.
+    '''
+    lang_code = getattr(request, 'LANGUAGE_CODE', None)
+    lang_code_fallback = getattr(settings, 'LANGUAGE_CODE', 'en')
+    ## Current site root
+    site_qs = Node.objects.filter(parent_id=None, available=True, sites__id=request.site.id)
+    if lang_code and request.path.startswith(f'/{lang_code}/'):
+        qs = site_qs.get_descendants().filter(Q(slug=lang_code) | Q(slug=lang_code_fallback), level=1, available=True, sites__id=request.site.id, type='content')
+        
+        node = qs.annotate(lang_order=Case(When(slug=lang_code, then=3), When(slug=lang_code_fallback, then=2))).order_by('-lang_order').first()
+        
+        if node:
+            qs = node.get_descendants(include_self=True)
+        else:
+            qs = site_qs
+    else:
+        qs = site_qs
+    
+    
+    return qs
+
+def raise_404_error(request, exception='Not found.'):
+    '''
+    Try to find node for showing 404 error or raise standard 404 exception as fallback.
+    request:   Request object
+    exception: string message.
+    '''
+    if not settings.DEBUG:
+        node404 = get_root_node_queryset(request).get_descendants().filter(slug='http-status-code', short='404', available=True, type='.property', sites__id=request.site.id).first()
+        
+        if node404:
+            node404 = node404.parent.parent
+            node404.context['exception'] = exception
+            return prepare_response(request, node404)
+        else:
+            raise Http404(exception)
+    else:
+        raise Http404(exception)
 ## get requested node
 def show_node(request, id=0, path=''):
     ''' /<str:path>/ request handler.'''
@@ -66,22 +106,22 @@ def show_node(request, id=0, path=''):
         node = find_node(request)
         
         if not node:
-            raise Http404(f'Node "{request_path}" not found')
+            return raise_404_error(request, f'Node "{request_path}" not found')
         
         #if node.id != str2int(last_slug) and node.slug != last_slug:
-            #raise Http404(f'Got wrong node "{node.id} {node.slug}" while "{last_slug}" expected.')
+            #return raise_404_error(request, f'Got wrong node "{node.id} {node.slug}" while "{last_slug}" expected.')
     
     elif id:
         ## This was for testing, actually not used
         try:
            node = Node.objects.get(pk=id)
         except Node.DoesNotExist:
-           raise Http404(f'Requested node with ID {id} does not exist.')
+           return raise_404_error(request, f'Requested node with ID {id} does not exist.')
     else:
         ## Main page requested
         node = Node.objects.filter(parent_id=None, sites__id=request.site.id).first()
         if not node:
-            raise Http404(f'Main page for requested site {request.site} not found.')
+            return raise_404_error(request, f'Main page for requested site {request.site} not found.')
     
     if node.type != 'content' or not node.available or node.slug.startswith('.') or (node.parent_id and node.parent.type == '.conf'):
         raise PermissionDenied
@@ -96,8 +136,17 @@ def show_node(request, id=0, path=''):
     if redirect_to:
         return redirect(redirect_to)
     
-    #plugins.render(node, request)
+    return prepare_response(request, node)
     
+
+
+def prepare_response(request, node):
+    '''
+    Prepare response.
+    request: Request object.
+    node:    CMS Node object.
+    Returns django HTTPResponse object.
+    '''
     templates = {
         'internal': (
             f'{request.site.domain}/messycms/_node.html',
@@ -108,6 +157,11 @@ def show_node(request, id=0, path=''):
             'messycms/node.html',
         )
     }
+    
+    kwargs = {}
+    httpStatusCode = node.prop('httpStatusCode')
+    if httpStatusCode:
+        kwargs['status'] = httpStatusCode
     
     if 'HTTP_X_REQUESTED_WITH' in request.META:
         ## If is ajax request, don't extend base template
@@ -130,7 +184,7 @@ def show_node(request, id=0, path=''):
     context = {'node': node, 'allnodes': []}
     ## "allnodes" will contain all rendered subnodes
     
-    response = render(request, templates[template_type], context)
+    response = render(request, templates[template_type], context, **kwargs)
     
     if response.headers.get('Content-Type', '').startswith('text/html'):
         ## Inserting deferred nodes.
