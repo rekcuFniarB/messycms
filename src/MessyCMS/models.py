@@ -161,10 +161,7 @@ else:
             else:
                 return self.__rendered
         
-        def get_absolute_url(self):
-            '''
-                Builds URL path of item.
-            '''
+        def get_node_path(self):
             ancestors = self.get_ancestors(include_self=True).values()
             slugs = []
             for item in ancestors:
@@ -176,6 +173,13 @@ else:
                         slug = item['id']
                     
                     slugs.append(slugify(slug, allow_unicode=True))
+            return slugs
+        
+        def get_absolute_url(self):
+            '''
+                Builds URL path of item.
+            '''
+            slugs = self.get_node_path()
             
             lang_node = ''
             

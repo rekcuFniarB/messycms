@@ -6,53 +6,70 @@ from django.core.exceptions import PermissionDenied
 import re
 import os
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Case, When
 from django.shortcuts import redirect
 from . import plugins
 from .middleware import PluggableExternalAppsWrapper
 
+def find_node(request):
+    '''
+    Find node by request
+    '''
+    path = request.path.strip('/')
+    slug_list = [x for x in path.split('/') if x]
+    last_slug = slug_list[-1]
+    lang_code = getattr(request, 'LANGUAGE_CODE', None)
+    lang_code_fallback = getattr(settings, 'LANGUAGE_CODE', 'en')
+    
+    qs = Node.objects.filter(parent_id=None, available=True, sites__id=request.site.id)
+    
+    for k, v in enumerate(slug_list):
+        if k == 0 and lang_code and lang_code == v:
+            ## children of requested lang node
+            qs = qs.get_descendants().filter(Q(slug=lang_code) | Q(slug=lang_code_fallback), level=k+1, available=True, sites__id=request.site.id, type='content')
+            qs = qs.annotate(lang_order=Case(When(slug=lang_code, then=3), When(slug=lang_code_fallback, then=2))).order_by('-lang_order').first().get_descendants(include_self=True)
+        else:
+            qs = qs.get_descendants().filter(Q(slug=v) | Q(pk=str2int(v)), level=k+1, available=True, type='content', sites__id=request.site.id)
+    
+    if settings.DEBUG:
+        try:
+            ## It fails sometimes
+            print('SQL:', qs.query)
+        except Exception as e:
+            print('ERROR: could not print query:', e)
+    
+    node = qs.first()
+    
+    if not node:
+        ## Not found by direct path, trying to find anywhere
+        qs = Node.objects.filter(parent_id=None, available=True, sites__id=request.site.id).get_descendants().filter(Q(slug=last_slug) | Q(pk=str2int(last_slug)), available=True, sites__id=request.site.id)
+        ## Check if all parents are available
+        parents_all = qs.get_ancestors().count()
+        parents_available = qs.get_ancestors().filter(available=True, sites__id=request.site.id).count()
+        if parents_all == parents_available:
+            node = qs.first()
+        
+        if settings.DEBUG:
+            try:
+                print('ANY NODE SQL:', qs.query)
+            except Exception as e:
+                print('ERROR: could not print query:', e)
+    return node
+
 ## get requested node
 def show_node(request, id=0, path=''):
     ''' /<str:path>/ request handler.'''
-    
-    lang_code = getattr(request, 'LANGUAGE_CODE', None)
     request_path = request.path.strip('/')
     node = None
     
-    site_qs = Node.objects.filter(parent_id=None, sites__id=request.site.id)
-    
     if request_path:
-        path_list = [x for x in request_path.split('/') if x]
-        last_slug = path_list[-1]
-        
-        ## Site root node queryset
-        queryset = site_qs
-        for path_part in path_list:
-            queryset = queryset_children(queryset).filter(Q(slug=path_part) | Q(pk=str2int(path_part)), sites__id=request.site.id, available=True)
-        node = queryset.first()
+        node = find_node(request)
         
         if not node:
-            ## Exact path search didn't find any node
-            ## Trying to find anywhere
-            queryset = site_qs
-            if lang_code:
-                queryset = queryset_children(queryset).filter(slug=lang_code, available=True, sites__id=request.site.id)
-            queryset = queryset.get_descendants().filter(Q(slug=last_slug) | Q(pk=str2int(last_slug)), sites__id=request.site.id, available=True)
-            if queryset.count() > 1:
-                ## TODO show list of matches on 404 page
-                raise Http404(f' Found multiple pages with slug {last_slug}.')
-            
-            node = queryset.first()
-            
-            if node and node.get_absolute_url().strip('/') == request_path:
-                ## This may mean than there is disabled parent node
-                raise Http404(f'Directory not available')
+            raise Http404(f'Node "{request_path}" not found')
         
-        if not node:
-            raise Http404(f'Node "{last_slug}" not found')
-        
-        if node.id != str2int(last_slug) and node.slug != last_slug:
-            raise Http404(f'Got wrong node "{node.id} {node.slug}" while "{last_slug}" expected.')
+        #if node.id != str2int(last_slug) and node.slug != last_slug:
+            #raise Http404(f'Got wrong node "{node.id} {node.slug}" while "{last_slug}" expected.')
     
     elif id:
         ## This was for testing, actually not used
@@ -69,7 +86,7 @@ def show_node(request, id=0, path=''):
     if node.type != 'content' or not node.available or node.slug.startswith('.') or (node.parent_id and node.parent.type == '.conf'):
         raise PermissionDenied
     
-    if node.get_absolute_url().strip('/') != request_path:
+    if node.get_absolute_url() != request.path:
         ## redirects to real path if node was moved.
         return redirect(node)
     
