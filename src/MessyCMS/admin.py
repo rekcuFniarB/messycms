@@ -64,11 +64,12 @@ class NodeAdmin(DraggableMPTTAdmin):
         elif query.startswith('sections'):
             parent_id = plugins.str2int(query.replace('sections', ''))
             if parent_id:
-                qs = qs.filter(pk=parent_id).get_descendants(include_self=True)
-                qs = qs.filter(parent__type='.conf')
+                qs_self = qs.filter(pk=parent_id)
+                qs = qs_self.get_descendants()
+                qs = qs_self | qs.filter(parent__type='.conf')
         
         if request.path.endswith('/node/') and not query.startswith('sections') and not query.startswith('all'):
-            qs = qs.filter(type='content').filter(parent__type='content')
+            qs = qs.filter(type='content').filter(Q(parent__type='content') | Q(parent_id=None))
         
         if request.user.is_superuser:
             return qs
