@@ -29,7 +29,7 @@ def find_node(request, path=''):
     
     for k, v in enumerate(slug_list):
         if k > 0:
-            qs = qs.get_descendants().filter(Q(slug=v) | Q(pk=str2int(v)), level=k+1, available=True, type='content', sites__id=request.site.id)
+            qs = qs.get_descendants().filter(Q(slug=v) | Q(pk=plugins.str2int(v)), level=k+1, available=True, type='content', sites__id=request.site.id)
     
     #if settings.DEBUG:
         #try:
@@ -42,7 +42,7 @@ def find_node(request, path=''):
     
     if not node:
         ## Not found by direct path, trying to find anywhere
-        qs = Node.objects.filter(parent_id=None, available=True, sites__id=request.site.id).get_descendants().filter(Q(slug=last_slug) | Q(pk=str2int(last_slug)), available=True, sites__id=request.site.id)
+        qs = Node.objects.filter(parent_id=None, available=True, sites__id=request.site.id).get_descendants().filter(Q(slug=last_slug) | Q(pk=plugins.str2int(last_slug)), available=True, sites__id=request.site.id)
         ## Check if all parents are available
         parents_all = qs.get_ancestors().count()
         parents_available = qs.get_ancestors().filter(available=True, sites__id=request.site.id).count()
@@ -108,7 +108,7 @@ def show_node(request, id=0, path=''):
         if not node:
             return raise_404_error(request, f'Node "{request_path}" not found')
         
-        #if node.id != str2int(last_slug) and node.slug != last_slug:
+        #if node.id != plugins.str2int(last_slug) and node.slug != last_slug:
             #return raise_404_error(request, f'Got wrong node "{node.id} {node.slug}" while "{last_slug}" expected.')
     
     elif id:
@@ -198,12 +198,7 @@ def prepare_response(request, node):
     
     return response
 
-def str2int(string):
-    try:
-        value = int(string)
-    except:
-        value = 0
-    return value
+
 
 def combine_querysets(querysets=[]):
     '''

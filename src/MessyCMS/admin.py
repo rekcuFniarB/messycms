@@ -53,8 +53,23 @@ class NodeAdmin(DraggableMPTTAdmin):
                 raise PermissionDenied
         return super().delete_model(request, obj)
     
-    def get_queryset(self, request):
+    def get_queryset(self, request, *args, **kwargs):
         qs = super().get_queryset(request)
+        
+        query = request.GET.get('q', '')
+        if query.startswith('parentId'):
+            parent_id = plugins.str2int(query.replace('parentId', ''))
+            if parent_id:
+                qs = qs.filter(pk=parent_id).get_descendants(include_self=True)
+        elif query.startswith('sections'):
+            parent_id = plugins.str2int(query.replace('sections', ''))
+            if parent_id:
+                qs = qs.filter(pk=parent_id).get_descendants(include_self=True)
+                qs = qs.filter(parent__type='.conf')
+        
+        if request.path.endswith('/node/') and not query.startswith('sections') and not query.startswith('all'):
+            qs = qs.filter(type='content').filter(parent__type='content')
+        
         if request.user.is_superuser:
             return qs
         return qs.filter(Q(author=request.user) | Q(group__in=request.user.groups.all())).filter(sites=request.site.id)

@@ -288,6 +288,47 @@ function MessyCMSAdmin() {
     if (tAvailable) {
         document.getElementById('result_list').addEventListener('click', this.toggleAvailable);
     }
+    
+    // Select parent node ID
+    var curUrlParams = new URLSearchParams(document.location.search);
+    var filterParams = curUrlParams.get('_changelist_filters');
+    if  (!!filterParams) {
+        filterParams = new URLSearchParams(filterParams);
+        var filterQ = filterParams.get('q');
+        if (!!filterQ) {
+            var parentId = parseInt(filterQ.replace('parentId', '').replace('sections', ''));
+            if (!!parentId) {
+                var parentIdField = this.field('parent');
+                if (!!parentIdField && parentIdField.nodeName == 'SELECT' && !parentIdField.value) {
+                    parentIdField.value = parentId;
+                }
+            }
+        }
+    }
+    
+    // Add buttons FIXME consider doing it in templates rather than here.
+    var curLink = document.querySelector('.app-MessyCMS.current-app a[aria-current]');
+    if (!!curLink && document.location.href.indexOf('/change/')) {
+        // If edit form
+        var objectTools = document.querySelector('#content-main .object-tools');
+        var curId = document.querySelector('.field-id .readonly');
+        
+        if (!!objectTools && curId && curId.innerText) {
+            var newLi;
+            newLi = document.createElement('li');
+            newLi.childA = document.createElement('a');
+            newLi.append(newLi.childA);
+            newLi.childA.href = `${curLink.href}?q=sections${curId.innerText}`;
+            newLi.childA.innerText = 'Properties';
+            objectTools.prepend(newLi);
+            newLi = document.createElement('li');
+            newLi.childA = document.createElement('a');
+            newLi.append(newLi.childA);
+            newLi.childA.href = `${curLink.href}?q=parentId${curId.innerText}`;
+            newLi.childA.innerText = 'Children';
+            objectTools.prepend(newLi);
+        }
+    }
 }
 
 window.addEventListener('load', function() {

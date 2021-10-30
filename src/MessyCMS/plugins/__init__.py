@@ -405,3 +405,10 @@ class RenderView(MessyPlugin):
         'type',
         'id',
     )
+
+def str2int(string):
+    try:
+        value = int(string)
+    except:
+        value = 0
+    return value
