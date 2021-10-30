@@ -107,16 +107,31 @@
     }
     
     if (typeof Element.prototype.findParent === 'undefined') {
-        Element.prototype.findParent = function(match) {
-            var found = null;
-            var current = this;
-            while (!found && !!current && !!current.parentElement) {
-                current = current.parentElement;
-                if (match(current)) {
-                    found = current;
-                }
+        Element.prototype.findParent = function(match, found) {
+            // match: callback, should return true or false.
+            // found (optional): default value to return if not found.
+            var parent = this;
+            if (typeof found === 'undefined') found = null;
+            while (parent = parent.parentElement) {
+                if (match(parent)) found = parent;
             }
             return found;
+        };
+    }
+    
+    if (typeof Element.prototype.getParents === 'undefined') {
+        Element.prototype.getParents = function(match) {
+            // match (optional): callback, should return true or false.
+            var parent = this;
+            var parents = [];
+            while (parent = parent.parentElement) {
+                if (typeof match === 'function') {
+                    if (match(parent)) parents.push(parent);
+                } else {
+                    parents.push(parent);
+                }
+            }
+            return parents;
         };
     }
     
@@ -308,6 +323,37 @@ MessyCMS = function() {
         
         return this._promise;
     }).bind(this.modal);
+    
+    this.waitForSuccess = (function(callback, times, period) {
+        if (!period) period = 100; // 100 ms
+        if (!times) times = 10; // Try 10 times.
+        var result;
+        var count = 0;
+        
+        return new Promise((resolve, reject) => {
+            function retry() {
+                if (count > times) {
+                    reject(`Tried ${count} times with no success.`);
+                } else {
+                    setTimeout(function() {
+                        var result = callback();
+                        if (!!result) {
+                            resolve(result);
+                        } else {
+                            retry();
+                        }
+                    }, period);
+                    count ++;
+                }
+            }
+            var result = callback();
+            if (!!result) {
+                resolve(result);
+            } else {
+                retry();
+            }
+        });
+    }).bind(this);
     
     this.storage = new function() {
         this.get = (function(name, defaultVal) {
