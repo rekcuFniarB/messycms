@@ -18,7 +18,7 @@ from django.apps import apps
 # Register your models here.
 
 class NodeAdmin(DraggableMPTTAdmin):
-    readonly_fields = ('id',)
+    readonly_fields = ('ts_updated', 'id')
     list_display = (
         'tree_actions',
         'indented_title',

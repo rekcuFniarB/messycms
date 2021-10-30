@@ -71,26 +71,21 @@ class PluggableExternalAppsWrapper:
             skip = True
         if not response.headers.get('Content-Type', '').startswith('text/html'):
             skip = True
+        if response.headers.get('Location', ''):
+            skip = True
+        if not response.content:
+            skip = True
         #if not template_node_id:
             #skip = True
         
         ## Get first available templates
         if not skip:
-            template_node = self.get_template_node(request)
-            
-            if template_node:
-                ## Tmp blank node
-                node = Node()
-                ## Applying response content to this blank node. (response.content is bytes)
-                node.content = response.content.decode(response.charset)
-                #template_node = Node.objects.get(pk=template_node_id)
-                template_node.context['include'] = node
-                templates = (
-                    f'{request.site.domain}/messycms/node.html',
-                    'messycms/node.html',
-                )
-                new_response = render(request, template_name=templates, context={'node': template_node})
-                response.content = new_response.content
+            ## Tmp blank node
+            node = Node()
+            ## Applying response content to this blank node. (response.content is bytes)
+            node.content = response.content.decode(response.charset)
+            new_response = self.prepare_response(request, node)
+            response.content = new_response.content
         
         return response
     
@@ -119,6 +114,76 @@ class PluggableExternalAppsWrapper:
                 template_node = node_section.parent.parent
         
         return template_node
+    
+    @classmethod
+    def prepare_response(cls, request, node):
+        '''
+        Prepare response.
+        request: Request object.
+        node:    CMS Node object.
+        Returns django HTTPResponse object.
+        '''
+        templates = {
+            'internal': (
+                f'{request.site.domain}/messycms/_node.html',
+                'messycms/_node.html',
+            ),
+            'full': (
+                f'{request.site.domain}/messycms/node.html',
+                'messycms/node.html',
+            )
+        }
+        
+        request_node = node
+        
+        kwargs = {}
+        httpStatusCode = node.prop('httpStatusCode')
+        if httpStatusCode:
+            kwargs['status'] = httpStatusCode
+        responseContentType = node.prop('httpContentType')
+        if responseContentType:
+            kwargs['content_type'] = responseContentType
+        
+        if 'HTTP_X_REQUESTED_WITH' in request.META:
+            ## If is ajax request, don't extend base template
+            template_type = 'internal'
+        elif responseContentType and not responseContentType.startswith('text/html'):
+            template_type = 'internal'
+        else: ## { not ajax
+            template_type = 'full'
+            
+            if node.link_id:
+                ## If link is defined, we use linked node as template for current
+                node.link.context['include'] = node
+                node = node.link
+            else:
+                ## Try to use first available template
+                template_node = cls.get_template_node(request)
+                if template_node:
+                    template_node.context['include'] = node
+                    node = template_node
+        ## } endif not ajax
+        
+        if True or response is sentinel:
+            response = {'context': {'node': node, 'request_node': request_node, 'allnodes': {}, 'template_type': template_type}}
+                ## "allnodes" will contain all rendered subnodes
+            response['response'] = render(request, templates[template_type], response['context'], **kwargs)
+        
+        responseContentType = response['response'].headers.get('Content-Type', '')
+        
+        if responseContentType.startswith('text/html'):
+            ## Inserting deferred nodes.
+            ## For example, if node has slug "append-to-head"
+            ## it will be appended to <head> element (inserted before closing </head> tag).
+            for node in response['context']['allnodes'].values():
+                append_to = node.append_to()
+                if append_to:
+                    append_to = append_to.encode(response['response'].charset)
+                    response['context']['node'] = node
+                    append_render = render(request, templates['internal'], response['context'])
+                    response['response'].content = response['response'].content.replace(append_to, append_render.content + append_to)
+        
+        return response['response']
 
 class DBRouter:
     '''Switching databases based on hostname

@@ -136,75 +136,7 @@ def show_node(request, id=0, path=''):
     if redirect_to:
         return redirect(redirect_to)
     
-    return prepare_response(request, node)
-    
-
-
-def prepare_response(request, node):
-    '''
-    Prepare response.
-    request: Request object.
-    node:    CMS Node object.
-    Returns django HTTPResponse object.
-    '''
-    templates = {
-        'internal': (
-            f'{request.site.domain}/messycms/_node.html',
-            'messycms/_node.html',
-        ),
-        'full': (
-            f'{request.site.domain}/messycms/node.html',
-            'messycms/node.html',
-        )
-    }
-    
-    kwargs = {}
-    httpStatusCode = node.prop('httpStatusCode')
-    if httpStatusCode:
-        kwargs['status'] = httpStatusCode
-    responseContentType = node.prop('httpContentType')
-    if responseContentType:
-        kwargs['content_type'] = responseContentType
-    
-    if 'HTTP_X_REQUESTED_WITH' in request.META:
-        ## If is ajax request, don't extend base template
-        template_type = 'internal'
-    elif responseContentType and not responseContentType.startswith('text/html'):
-        template_type = 'internal'
-    else: ## { not ajax
-        template_type = 'full'
-        
-        if node.link_id:
-            ## If link is defined, we use linked node as template for current
-            node.link.context['include'] = node
-            node = node.link
-        else:
-            ## Try to use first available template
-            template_node = PluggableExternalAppsWrapper.get_template_node(request)
-            if template_node:
-                template_node.context['include'] = node
-                node = template_node
-    ## } endif nod ajax
-    
-    context = {'node': node, 'allnodes': []}
-    ## "allnodes" will contain all rendered subnodes
-    
-    response = render(request, templates[template_type], context, **kwargs)
-    responseContentType = response.headers.get('Content-Type', '')
-    
-    if responseContentType.startswith('text/html'):
-        ## Inserting deferred nodes.
-        ## For example, if node has slug "append-to-head"
-        ## it will be appended to <head> element (inserted before closing </head> tag).
-        for node in context['allnodes']:
-            append_to = node.append_to()
-            if append_to:
-                append_render = render(request, templates['internal'], {'node': node})
-                response.content = response.content.replace(append_to, append_render.content + append_to)
-    
-    return response
-
-
+    return PluggableExternalAppsWrapper.prepare_response(request, node)
 
 def combine_querysets(querysets=[]):
     '''

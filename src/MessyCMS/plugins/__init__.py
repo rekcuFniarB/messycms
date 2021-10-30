@@ -9,6 +9,7 @@ from django.urls import resolve
 from django.http import HttpResponseRedirect
 import importlib
 #from ..models import Node ## this produces "app not ready yet" error.
+from django.core.cache import cache
 
 ## This module contains some basic plugins.
 ## Also project may define its own plugins.
@@ -20,7 +21,7 @@ __IMPORTED_MODULES__ = {}
 __PLUGIN_INSTANCES__ = {}
 
 regexp = {
-    'ahref': re.compile(r'<a\s+href="(/\d+?/)"'),
+    'ahref': re.compile(r'<a\s+href="((:?/.+)?/\d+?/)"'),
     'digit': re.compile(r'\d+')
 }
 
@@ -133,65 +134,79 @@ def render(node, requestContext):
     
     if 'allnodes' in requestContext:
         ## For postprocessing
-        requestContext['allnodes'].append(node)
+        requestContext['allnodes'][node.id] = node;
     
-    rendered_string = ''
-    if debug:
-        rendered_string = f'<!-- block id: {node.id}; type: {node.type} -->\n'
+    node_upd_ts = 0
+    ## Workaround for blank nodes
+    if node.ts_updated:
+        node_upd_ts = node.ts_updated.timestamp()
     
-    if node.type in available_plugins and node.author_id and node.author.is_staff: # {
-        ## If there is method
-        #if node.type in dir():
-        plugin_instance = get_plugin_instance(node.type)
+    cache_key = hash( ('messycms', node.id, node_upd_ts, requestContext.request.META.get('QUERY_STRING', ''), requestContext.request.path_info) )
+    sentinel = object()
+    rendered_string = cache.get(cache_key, sentinel)
+    
+    if rendered_string is sentinel:
+        ## Not found in cache
+        rendered_string = ''
         
-        if plugin_instance: ## same as above {
-            ## Calling method from this module
-            result = plugin_instance.execute(node, requestContext.request)
-            if result: # {
-                rendered_string += render_to_string(
-                    ## file based list of templates to try
-                    result.get('templates', ()),
-                    ## db based template
-                    node.get_stored_template(),
-                    result.get('context', node.context),
-                    requestContext.request
-                )
-                
-                #if 'content' in result:
-                    #rendered_string += result['content']
-            ## } endif result
-        ## }  endif there is plugin method
-        else: ## { No method for this node type
-            ## If current node is a section of some node
-            if node.parent_id and node.parent.type == '.conf':
-                ## This will add a section to owning node using slug as template
-                ## name and rendered with parent context
-                rendered_string += render_to_string(
-                    templates(node, requestContext.request),
-                    node.get_stored_template(),
-                    {'node': node.parent.parent, 'request': requestContext.request},
-                    requestContext.request
-                )
-            else:
-                node.content = mark_safe(node.content)
-                rendered_string += render_to_string(
-                    templates(node, requestContext.request),
-                    node.get_stored_template(),
-                    {'node': node, 'request': requestContext.request},
-                    requestContext.request
-                )
-        ## }
-    
-    ## } endif type in available_plugins
-    else: ## {
-        ## No plugin for this type of node or node author is not staff
-        rendered_string += node.content
-    ## endif }
-    
-    if debug:
-        rendered_string += f'\n<!-- endblock {node.id} -->\n'
-    
-    rendered_string = parse_links(rendered_string)
+        if node.type in available_plugins and node.author_id and node.author.is_staff: # {
+            ## If there is method
+            #if node.type in dir():
+            plugin_instance = get_plugin_instance(node.type)
+            
+            if plugin_instance: ## same as above {
+                ## Calling method from this module
+                result = plugin_instance.execute(node, requestContext.request)
+                if result: # {
+                    requestContext.update(result.get('context', node.context))
+                    rendered_string += render_to_string(
+                        ## file based list of templates to try
+                        result.get('templates', ()),
+                        ## db based template
+                        node.get_stored_template(),
+                        requestContext,
+                        requestContext.request
+                    )
+                    
+                    #if 'content' in result:
+                        #rendered_string += result['content']
+                ## } endif result
+            ## }  endif there is plugin method
+            else: ## { No method for this node type
+                ## If current node is a section of some node
+                if node.parent_id and node.parent.type == '.conf':
+                    ## This will add a section to owning node using slug as template
+                    ## name and rendered with parent context
+                    requestContext.update({'node': node.parent.parent, 'request': requestContext.request})
+                    rendered_string += render_to_string(
+                        templates(node, requestContext.request),
+                        node.get_stored_template(),
+                        requestContext,
+                        requestContext.request
+                    )
+                else:
+                    node.content = mark_safe(node.content)
+                    requestContext.update({'node': node, 'request': requestContext.request})
+                    rendered_string += render_to_string(
+                        templates(node, requestContext.request),
+                        node.get_stored_template(),
+                        requestContext,
+                        requestContext.request
+                    )
+            ## }
+        
+        ## } endif type in available_plugins
+        else: ## {
+            ## No plugin for this type of node or node author is not staff
+            rendered_string += node.content
+        ## endif }
+        
+        if debug:
+            rendered_string += f'<!-- block id: {node.id}; type: {node.type} -->\n{rendered_string}\n<!-- endblock {node.id} -->\n'
+        
+        rendered_string = parse_links(rendered_string)
+        
+        cache.set(cache_key, rendered_string)
     
     return rendered_string
 
@@ -202,13 +217,14 @@ def parse_links(string):
     for match in regexp['ahref'].finditer(string):
         try:
             resolved = resolve(match[1])
-            if resolved.url_name == 'messycms-node-by-id' and 'id' in resolved.kwargs:
+            if resolved.url_name == 'node-by-id' and 'id' in resolved.kwargs:
                 node = get_model().objects.get(pk=resolved.kwargs['id'])
                 if node:
                     replacement = match[0].replace(match[1], node.get_absolute_url())
                     string = string.replace(match[0], replacement)
         except:
             pass
+    
     return string
 
 def templates(node, request=None):
@@ -260,13 +276,22 @@ def render_to_string(templates=[], template='', context={}, request=None):
     if template:
         try:
             tpl = Template(template)
-            db_tpl_render = tpl.render(Context(context))
+            
+            if type(context) is dict:
+                obContext = Context(context)
+            else:
+                obContext = context
+                
+            db_tpl_render = tpl.render(obContext)
             if db_tpl_render != template:
                 ## if not equal, it means that it contained a template code.
                 result = db_tpl_render
         except:
             if settings.DEBUG:
                 raise
+    
+    if type(context) is not dict:
+        context = context.flatten()
     
     if not result and templates:
         try:

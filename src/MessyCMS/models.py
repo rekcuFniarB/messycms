@@ -5,7 +5,7 @@ from django.contrib.sites.models import Site
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from mptt.models import MPTTModel, TreeForeignKey
-from django.utils.timezone import now
+from django.utils import timezone
 from django.utils.text import slugify
 from django.urls import reverse
 from . import plugins
@@ -38,7 +38,6 @@ else:
         node_class = models.CharField(max_length=255, default='', blank=True)
         author = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True)
         group = models.ForeignKey(Group, on_delete=models.SET_NULL, blank=True, null=True)
-        timestamp = models.DateTimeField(default=now)
         show_in_menu = models.BooleanField(default=False)
         ## Is node available?
         available = models.BooleanField(default=True)
@@ -48,6 +47,8 @@ else:
         link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True,
             help_text='Template node to insert into.', verbose_name='Parent template')
         sites = models.ManyToManyField(Site, null=True, blank=True)
+        ts_created = models.DateTimeField(default=timezone.now)
+        ts_updated = models.DateTimeField(auto_now=True)
         
         ## Storage for computed data.
         context = {}
@@ -152,10 +153,13 @@ else:
             '''
             Lazy content rendering, called from template by {% include %} tag
             '''
+            
+            node_was_cached = 'allnodes' in requestContext and self.id in requestContext['allnodes']
+            
             if not self.__rendered:
                 self.__rendered = plugins.render(self, requestContext)
             
-            if self.append_to() and 'allnodes' in requestContext:
+            if self.append_to() and not node_was_cached:
                 ## If node rendering should be deferred
                 return ''
             else:
@@ -238,7 +242,8 @@ else:
             if stripped_slug.startswith('append-to-'):
                 append_to = stripped_slug.replace('append-to-', '')
                 append_to = f'</{append_to}>'
-            return append_to.encode('utf-8') ## bytes
+            return append_to
+            #return append_to.encode('utf-8') ## bytes
         
         def children_count(self):
             '''

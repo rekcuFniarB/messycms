@@ -29,7 +29,7 @@ class ItemslistCursorPaginated(plugins.ItemsList):
         if type(prop_filter) is dict:
             items = items.filter(**prop_filter)
         
-        items = items.order_by('-timestamp', '-id')
+        items = items.order_by('-ts_created', '-id')
         limit = int(node.prop('limit', 10))
         
         if limit:
@@ -42,7 +42,7 @@ class ItemslistCursorPaginated(plugins.ItemsList):
             
             current_node = Node.objects.filter(id=node_id).first()
             if current_node:
-                sliced = sliced.filter(timestamp__lte=current_node.timestamp)
+                sliced = sliced.filter(ts_created__lte=current_node.ts_created)
             
             sliced = sliced[:limit + 1]
             result['context']['nodes'] = sliced[:limit]
@@ -59,7 +59,7 @@ class ItemslistCursorPaginated(plugins.ItemsList):
             
             ## Checkout if there is prev page
             if current_node:
-                sliced = items.filter(timestamp__gt=current_node.timestamp)
+                sliced = items.filter(ts_created__gt=current_node.ts_created)
                 if sliced:
                     result['context']['prev_page'] = sliced[sliced.count() - limit:][0]
         
