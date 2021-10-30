@@ -19,14 +19,14 @@
                     var evNamespace = evNames.join('.').replace(`${evName}.`, '');
                     if (typeof this._event_handlers[evName] === 'undefined') {
                         this._event_handlers[evName] = [];
-                        this.addEventListener(evName, (function(event) {
+                        this.addEventListener(evName, function(event) {
                             if (typeof this._event_handlers[event.type] === 'object') {
                                 for (var handler of this._event_handlers[event.type]) {
                                     handler.bind(this);
                                     handler(event);
                                 }
                             }
-                        }).bind(this));
+                        }.bind(this));
                     }
                     if (typeof handler === 'function') {
                         handler._event_namespace = evNamespace;
@@ -184,7 +184,7 @@ MessyCMS = function() {
             container = document.querySelector(container);
         }
         if (typeof container === 'object') {
-            container.metadata = (function(path) {
+            container.metadata = function(path) {
                 var metadataContainer;
                 if (path) {
                     metadataContainer = this.querySelector(`script.section-metadata[data-path="${path}"]`);
@@ -200,9 +200,9 @@ MessyCMS = function() {
                     }
                 }
                 return metadata;
-            }).bind(container);
+            }.bind(container);
             
-            container.loadContent = (function(url, pushState) {
+            container.loadContent = function(url, pushState) {
                 if (typeof pushState === 'undefined') pushState = true;
                 //var requestURL = new URL(url);
                 // URL class sucks, it doesn't accept relative paths
@@ -234,7 +234,7 @@ MessyCMS = function() {
                 .catch((error) => {
                     console.error('AJAX ERROR:', error);
                 });
-            }).bind(container);
+            }.bind(container);
             
             document.body.addToEventHandlers('click.ajax.mode', (event) => {
                 if (event.target.nodeName == 'A') {
@@ -261,7 +261,7 @@ MessyCMS = function() {
     };
     
     this.modal = document.createElement('div');
-    this.modal.open = (function(content) {
+    this.modal.open = function(content) {
         if (!this.classList.contains('messy-modal')) {
             // Opening for first time, do init.
             this.classList.add('messy-modal');
@@ -271,12 +271,12 @@ MessyCMS = function() {
             this.wrapper.append(this);
             
             // Close popup and resolve promise with value
-            this.close = (function(value) {
+            this.close = function(value) {
                 this.show(false);
                 if (typeof this._resolve === 'function') {
                     this._resolve(value);
                 }
-            }).bind(this);
+            }.bind(this);
             
             // Close on clicks outside of modal window.
             this.wrapper.addEventListener('click', (event) => {
@@ -292,7 +292,7 @@ MessyCMS = function() {
                 }
             });
             
-            this.show = (function(show) {
+            this.show = function(show) {
                 if (show) {
                     this.wrapper.classList.replace('messy-d-none', 'messy-d-block');
                     this.wrapper.style.height = `${document.body.scrollHeight}px`;
@@ -301,7 +301,7 @@ MessyCMS = function() {
                 } else {
                     this.wrapper.classList.replace('messy-d-block', 'messy-d-none');
                 }
-            }).bind(this);
+            }.bind(this);
         } // if was not "messy-modal" class (end of init on first time invokation)
         
         if (!!content) {
@@ -322,9 +322,9 @@ MessyCMS = function() {
         this.show(true);
         
         return this._promise;
-    }).bind(this.modal);
+    }.bind(this.modal);
     
-    this.waitForSuccess = (function(callback, times, period) {
+    this.waitForSuccess = function(callback, times, period) {
         if (!period) period = 100; // 100 ms
         if (!times) times = 10; // Try 10 times.
         var result;
@@ -353,10 +353,21 @@ MessyCMS = function() {
                 retry();
             }
         });
-    }).bind(this);
+    }.bind(this);
+    
+    this.loadScript = function(src, type) {
+        if (!type) type = 'text/javascript';
+        return new Promise((resolve, reject) => {
+            var script = document.createElement('script');
+            script.setAttribute('type', type);
+            script.setAttribute('src', src);
+            script.addEventListener('load', resolve.bind(script));
+            document.body.append(script);
+        });
+    }.bind(this);
     
     this.storage = new function() {
-        this.get = (function(name, defaultVal) {
+        this.get = function(name, defaultVal) {
             var result;
             if (typeof defaultVal == 'undefined') {
                 defaultVal = null;
@@ -371,22 +382,22 @@ MessyCMS = function() {
                 result = defaultVal;
             }
             return result;
-        }).bind(this.storage);
-        this.set = (function(name, value) {
+        }.bind(this.storage);
+        this.set = function(name, value) {
             try {
                 window.localStorage.setItem(name, value);
             }
             catch(error) {
                 console.error('Local Storage:', error);
             }
-        }).bind(this.storage);
-        this.delete = (function(name) {
+        }.bind(this.storage);
+        this.delete = function(name) {
             try {
                 window.localStorage.removeItem(name);
             }
             catch (error) {
                 console.error('Local Storage:', error);
             }
-        }).bind(this.storage);
+        }.bind(this.storage);
     };
 };
