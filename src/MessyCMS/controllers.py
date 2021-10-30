@@ -162,9 +162,14 @@ def prepare_response(request, node):
     httpStatusCode = node.prop('httpStatusCode')
     if httpStatusCode:
         kwargs['status'] = httpStatusCode
+    responseContentType = node.prop('httpContentType')
+    if responseContentType:
+        kwargs['content_type'] = responseContentType
     
     if 'HTTP_X_REQUESTED_WITH' in request.META:
         ## If is ajax request, don't extend base template
+        template_type = 'internal'
+    elif responseContentType and not responseContentType.startswith('text/html'):
         template_type = 'internal'
     else: ## { not ajax
         template_type = 'full'
@@ -185,8 +190,9 @@ def prepare_response(request, node):
     ## "allnodes" will contain all rendered subnodes
     
     response = render(request, templates[template_type], context, **kwargs)
+    responseContentType = response.headers.get('Content-Type', '')
     
-    if response.headers.get('Content-Type', '').startswith('text/html'):
+    if responseContentType.startswith('text/html'):
         ## Inserting deferred nodes.
         ## For example, if node has slug "append-to-head"
         ## it will be appended to <head> element (inserted before closing </head> tag).

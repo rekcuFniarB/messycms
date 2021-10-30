@@ -125,6 +125,10 @@ def render(node, requestContext):
         ## It's service type
         return ''
     
+    debug = settings.DEBUG
+    if not node.prop('contentType', '').startswith('text/html'):
+        debug = False
+    
     available_plugins = dict(plugins_list)
     
     if 'allnodes' in requestContext:
@@ -132,7 +136,7 @@ def render(node, requestContext):
         requestContext['allnodes'].append(node)
     
     rendered_string = ''
-    if settings.DEBUG:
+    if debug:
         rendered_string = f'<!-- block id: {node.id}; type: {node.type} -->\n'
     
     if node.type in available_plugins and node.author_id and node.author.is_staff: # {
@@ -184,7 +188,7 @@ def render(node, requestContext):
         rendered_string += node.content
     ## endif }
     
-    if settings.DEBUG:
+    if debug:
         rendered_string += f'\n<!-- endblock {node.id} -->\n'
     
     rendered_string = parse_links(rendered_string)
