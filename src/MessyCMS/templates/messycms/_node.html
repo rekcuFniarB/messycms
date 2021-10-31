@@ -10,10 +10,5 @@
     {% endif %}
     
     {% for section in node.conf %}
-        {% if section.type == 'inclusion_point' and node.context.include %}
-            {# recurse #}
-            {% include "messycms/_node.html" with node=node.context.include %}
-        {% else %}
-            {% include section %}
-        {% endif %}
+        {% include section %}
     {% endfor %}

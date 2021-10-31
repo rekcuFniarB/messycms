@@ -154,20 +154,25 @@ class PluggableExternalAppsWrapper:
             
             if node.link_id:
                 ## If link is defined, we use linked node as template for current
-                node.link.context['include'] = node
-                node = node.link
+                inclusion_point = node.link.prop('inclusion_point')
+                if inclusion_point:
+                    inclusion_point.type = 'IncludeItem'
+                    inclusion_point.link = node
+                    node = node.link
             else:
                 ## Try to use first available template
                 template_node = cls.get_template_node(request)
                 if template_node:
-                    template_node.context['include'] = node
-                    node = template_node
+                    inclusion_point = template_node.prop('inclusion_point')
+                    if inclusion_point:
+                        inclusion_point.type = 'IncludeItem'
+                        inclusion_point.link = node
+                        node = template_node
         ## } endif not ajax
         
-        if True or response is sentinel:
-            response = {'context': {'node': node, 'request_node': request_node, 'allnodes': {}, 'template_type': template_type}}
-                ## "allnodes" will contain all rendered subnodes
-            response['response'] = render(request, templates[template_type], response['context'], **kwargs)
+        response = {'context': {'node': node, 'request_node': request_node, 'allnodes': {}, 'template_type': template_type}}
+        ## "allnodes" will contain all rendered subnodes
+        response['response'] = render(request, templates[template_type], response['context'], **kwargs)
         
         responseContentType = response['response'].headers.get('Content-Type', '')
         
