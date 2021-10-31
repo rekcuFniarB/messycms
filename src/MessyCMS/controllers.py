@@ -91,7 +91,7 @@ def raise_404_error(request, exception='Not found.'):
         if node404:
             node404 = node404.parent.parent
             node404.context['exception'] = exception
-            return prepare_response(request, node404)
+            return PluggableExternalAppsWrapper.prepare_response(request, node404)
         else:
             raise Http404(exception)
     else:
