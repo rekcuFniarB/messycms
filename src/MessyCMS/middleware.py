@@ -152,6 +152,8 @@ class PluggableExternalAppsWrapper:
         else: ## { not ajax
             template_type = 'full'
             
+            title = node.title
+            
             if node.link_id:
                 ## If link is defined, we use linked node as template for current
                 inclusion_point = node.link.prop('inclusion_point')
@@ -159,6 +161,7 @@ class PluggableExternalAppsWrapper:
                     inclusion_point.type = 'IncludeItem'
                     inclusion_point.link = node
                     node = node.link
+                    node.title = title
             else:
                 ## Try to use first available template
                 template_node = cls.get_template_node(request)
@@ -168,6 +171,7 @@ class PluggableExternalAppsWrapper:
                         inclusion_point.type = 'IncludeItem'
                         inclusion_point.link = node
                         node = template_node
+                        node.title = title
         ## } endif not ajax
         
         response = {'context': {'node': node, 'request_node': request_node, 'allnodes': {}, 'template_type': template_type}}
