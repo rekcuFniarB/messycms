@@ -43,6 +43,12 @@ class NodeAdmin(DraggableMPTTAdmin):
             ## Just assigning to obj.sites doesn't work because of m2m field.
             form.cleaned_data['sites'] = request.site.__class__.objects.filter(id=request.site.id)
         
+        ## Check if "add node" was pressed on list of properties
+        cfilters = request.GET.get('_changelist_filters', '')
+        if cfilters and cfilters.startswith('q=sections'):
+            ## A mark for save() method
+            obj.context['saveasproperty'] = cfilters.replace('q=sections', '')
+        
         #obj.save()
         return super().save_model(request, obj, form, change)
     
