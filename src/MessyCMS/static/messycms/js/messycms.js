@@ -233,6 +233,7 @@ MessyCMS = function() {
                 })
                 .catch((error) => {
                     console.error('AJAX ERROR:', error);
+                    document.location = requestURL.href;
                 });
             }.bind(container);
             
