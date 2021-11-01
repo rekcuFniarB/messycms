@@ -327,6 +327,14 @@ function MessyCMSAdmin() {
             newLi.childA.href = `${curLink.href}?q=parentId${curId.innerText}`;
             newLi.childA.innerText = 'Children';
             objectTools.prepend(newLi);
+            if (this.field('parent').value) {
+                newLi = document.createElement('li');
+                newLi.childA = document.createElement('a');
+                newLi.append(newLi.childA);
+                newLi.childA.href = `${curLink.href}?q=parentId${this.field('parent').value}`;
+                newLi.childA.innerText = 'Parent';
+                objectTools.prepend(newLi);
+            }
         }
     }
 }
