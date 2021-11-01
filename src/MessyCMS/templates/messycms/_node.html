@@ -9,6 +9,22 @@
         </script>
     {% endif %}
     
+    {% if request.user.is_staff %}
+        {% if request.GET.messyedit %}
+            <div class="messycms-admin-edit-mode">
+                <a href="{% url 'admin:MessyCMS_node_change' node.pk %}" class="mesycms-edit-node"><span class="label-edit">Edit</span> <span class="edit-node-name">{{ node }}</span></a>
+            </div>
+        {% endif %}
+    {% endif %}
+    
     {% for section in node.conf %}
         {% include section %}
+        
+        {% if request.user.is_staff %}
+            {% if request.GET.messyedit %}
+                <div class="messycms-admin-edit-mode">
+                    <a href="{% url 'admin:MessyCMS_node_change' section.pk %}" class="mesycms-edit-node"><span class="label-edit">Edit</span> <span class="edit-node-name">{{ section }}</span></a>
+                </div>
+            {% endif %}
+        {% endif %}
     {% endfor %}
