@@ -358,13 +358,35 @@ MessyCMS = function() {
     
     this.loadScript = function(src, type) {
         if (!type) type = 'text/javascript';
-        return new Promise((resolve, reject) => {
-            var script = document.createElement('script');
-            script.setAttribute('type', type);
-            script.setAttribute('src', src);
-            script.addEventListener('load', resolve.bind(script));
-            document.body.append(script);
-        });
+        var script = document.createElement('script');
+        if (!script.promise) {
+            script.promise = new Promise((resolve, reject) => {
+                script.setAttribute('type', type);
+                script.setAttribute('src', src);
+                script.addEventListener('load', resolve.bind(script)); // binding doesn't work here :(
+                document.body.append(script);
+            });
+        }
+        return script.promise;
+    }.bind(this);
+    
+    this.requireScript = function(src, type) {
+        var script = document.querySelector(`[src$="${src}"]`);
+        var promise;
+        if (!script) {
+            promise = this.loadScript(src, type);
+        }
+        else if (!!script.promise) {
+            // Already loaded by this.loadScript
+            promise = script.promise;
+        }
+        else {
+            // Loaded not by this.loadScript
+            promise = new Promise((resolve, reject) => {
+                resolve({type: 'load', target: script});
+            });
+        }
+        return promise;
     }.bind(this);
     
     this.storage = new function() {
