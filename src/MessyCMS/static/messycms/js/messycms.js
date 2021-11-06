@@ -328,7 +328,6 @@ MessyCMS = function() {
     this.waitForSuccess = function(callback, times, period) {
         if (!period) period = 100; // 100 ms
         if (!times) times = 10; // Try 10 times.
-        var result;
         var count = 0;
         
         return new Promise((resolve, reject) => {
@@ -336,23 +335,16 @@ MessyCMS = function() {
                 if (count > times) {
                     reject(`Tried ${count} times with no success.`);
                 } else {
-                    setTimeout(function() {
-                        var result = callback();
-                        if (!!result) {
-                            resolve(result);
-                        } else {
-                            retry();
-                        }
-                    }, period);
-                    count ++;
+                    var result = callback();
+                    if (!!result) {
+                        resolve(result);
+                    } else {
+                        setTimeout(retry, period);
+                        count ++;
+                    }
                 }
             }
-            var result = callback();
-            if (!!result) {
-                resolve(result);
-            } else {
-                retry();
-            }
+            retry();
         });
     }.bind(this);
     
