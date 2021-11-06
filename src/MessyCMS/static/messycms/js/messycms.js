@@ -205,8 +205,10 @@ MessyCMS = function() {
                 return metadata;
             }.bind(container);
             
-            container.loadContent = function(url, pushState) {
+            container.loadContent = function(url, pushState, scrollOnFinish) {
                 if (typeof pushState === 'undefined') pushState = true;
+                if (typeof scrollOnFinish === 'undefined') scrollOnFinish = true;
+                
                 //var requestURL = new URL(url);
                 // URL class sucks, it doesn't accept relative paths
                 var requestURL = document.createElement('a');
@@ -233,6 +235,18 @@ MessyCMS = function() {
                 })
                 .then(() => {
                     window.dispatchEvent(new Event('load'));
+                    if (scrollOnFinish) {
+                        var scrollToElement;
+                        if (requestURL.hash.length > 1) {
+                            scrollToElement = document.getElementById(requestURL.hash.substring(1));
+                        }
+                        if (!scrollToElement) {
+                            scrollToElement = this;
+                        }
+                        if (typeof scrollToElement.scrollIntoView === 'function') {
+                            scrollToElement.scrollIntoView({behavior: 'smooth'});
+                        }
+                    }
                 })
                 .catch((error) => {
                     console.error('AJAX ERROR:', error);
