@@ -45,6 +45,7 @@ class NodeAdmin(DraggableMPTTAdmin):
         
         ## Check if "add node" was pressed on list of properties
         cfilters = request.GET.get('_changelist_filters', '')
+        obj.context['saveasproperty'] = None
         if cfilters and cfilters.startswith('q=sections'):
             ## A mark for save() method
             obj.context['saveasproperty'] = cfilters.replace('q=sections', '')
