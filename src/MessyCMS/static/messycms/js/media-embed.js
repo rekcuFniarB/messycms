@@ -59,14 +59,17 @@ function MediaEmbedded(link) {
         if (!!this.frame) {
             var frameSrc = document.createElement('a');
             frameSrc.href= this.frame.src;
+            frameSrc.searchParams = new URLSearchParams(frameSrc.search);
             if (frameSrc.hostname == 'www.youtube.com') {
                 frameSrc.hostname = 'www.youtube-nocookie.com';
-                frameSrc.searchParams = new URLSearchParams(frameSrc.search);
                 frameSrc.searchParams.set('autoplay', 1);
                 frameSrc.searchParams.set('rel', 0);
-                frameSrc.search = frameSrc.searchParams.toString();
-                this.frame.src = frameSrc.href;
             }
+            else if (frameSrc.hostname == 'w.soundcloud.com') {
+                frameSrc.searchParams.set('auto_play', 'true');
+            }
+            frameSrc.search = frameSrc.searchParams.toString();
+            this.frame.src = frameSrc.href;
             this.frame.width = '';
             this.frame.height = '';
             this.frame.style.width = '100%';
@@ -75,6 +78,9 @@ function MediaEmbedded(link) {
             this.frame.style.position = 'absolute';
             this.frame.style.left = 0;
             this.frame.style.top = 0;
+            this.frame.setAttribute('loading', 'lazy');
+            this.frame.setAttribute('allowfullscreen', true);
+            this.frame.setAttribute('allow', 'fullscreen; autoplay');
             this.link.append(this.frame);
         } else {
             this.link.innerHTML = this.data.html;
