@@ -5,17 +5,27 @@
 function MediaEmbedded(link) {
     var This = this;
     this.link = link;
-    
+    this.oEmbedApis = {
+        'vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json'
+    };
     this.getOEmbed = function() {
         if (!this.data) {
             var oEmbedUrl = document.createElement('a');
-            oEmbedUrl.href = this.link.href;
-            oEmbedUrl.pathname = '/oembed';
+            if (typeof this.oEmbedApis[this.link.hostname] !== 'undefined') {
+                oEmbedUrl.href = this.oEmbedApis[this.link.hostname];
+                oEmbedUrl._search = new URLSearchParams(oEmbedUrl.search);
+                oEmbedUrl._search.set('url', this.link.href);
+                oEmbedUrl.search = oEmbedUrl._search.toString();
+            } else {
+                // Fallback to link url
+                oEmbedUrl.href = this.link.href;
+                oEmbedUrl.pathname = '/oembed';
+                oEmbedUrl.search = new URLSearchParams({
+                    url: this.link.href,
+                    format: 'json',
+                }).toString();
+            }
             if (oEmbedUrl.hostname == 'youtu.be') oEmbedUrl.hostname = 'www.youtube.com';
-            oEmbedUrl.search = new URLSearchParams({
-                url: this.link.href,
-                format: 'json'
-            }).toString();
             
             fetch(oEmbedUrl.href)
                 .then((response) => {return response.json()})
@@ -29,7 +39,7 @@ function MediaEmbedded(link) {
                         this.link.style.backgroundRepeat = 'no-repeat';
                         this.link.style.backgroundSize = '100%';
                         this.link.style.backgroundPosition = 'center';
-                        this.link.style.objectFit = 'cover';
+                        this.link.style.backgroundSize = 'cover';
                     }
                     if (!!data.title) {
                         this.link.setAttribute('title', data.title);
