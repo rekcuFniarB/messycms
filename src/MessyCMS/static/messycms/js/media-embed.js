@@ -34,6 +34,9 @@ function MediaEmbedded(link) {
             }
             if (oEmbedUrl.hostname == 'youtu.be') oEmbedUrl.hostname = 'www.youtube.com';
             
+            this.data = {html: ''};
+            Object.assign(this.data, this.link.dataset);
+            
             function embedDataReady(data) {
                 if (!!data.html) {
                     this.link.addEventListener('click', this.embedFrame, {once: true});
@@ -53,9 +56,8 @@ function MediaEmbedded(link) {
             
             if (!!this.link.dataset.embedFrameSrc) {
                 // If predefined frame url
-                this.data = {
-                    html: `<iframe src="${this.link.dataset.embedFrameSrc}" allow="autoplay; fullscreen"></iframe>`
-                };
+                this.data.html = `<iframe src="${this.link.dataset.embedFrameSrc}" allow="autoplay; fullscreen"></iframe>`;
+                
                 if (!!this.link.dataset.embedThumbnail) {
                     this.data.thumbnail_url = this.link.dataset.embedThumbnail;
                 }
@@ -63,7 +65,6 @@ function MediaEmbedded(link) {
             }
             else if (!!this.link.dataset.embedTemplate) {
                 let embedTemplate = document.getElementById(this.link.dataset.embedTemplate);
-                this.data = {html: ''};
                 if (!!embedTemplate) {
                     this.data.html = embedTemplate.innerHTML;
                     this.data.embedTemplate = embedTemplate;
@@ -121,6 +122,12 @@ function MediaEmbedded(link) {
             this.frame.height = '';
             this.frame.style.width = '100%';
             this.frame.style.height = '100%';
+            if (!!this.data.embedWidth) {
+                this.link.style.width = this.data.embedWidth;
+            }
+            if (!!this.data.embedHeight) {
+                this.link.style.height = this.data.embedHeight;
+            }
             this.link.style.position = 'relative';
             this.frame.style.position = 'absolute';
             this.frame.style.left = 0;
