@@ -9,6 +9,12 @@ function MediaEmbedded(link) {
         'vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json',
         'player.vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json'
     };
+    var readyPromise = {};
+    this.ready = new Promise((resolve, reject) => {
+        readyPromise.resolve = resolve;
+        readyPromise.reject = reject;
+    });
+    
     this.getOEmbed = function() {
         if (!this.data) {
             var oEmbedUrl = document.createElement('a');
@@ -28,28 +34,45 @@ function MediaEmbedded(link) {
             }
             if (oEmbedUrl.hostname == 'youtu.be') oEmbedUrl.hostname = 'www.youtube.com';
             
-            fetch(oEmbedUrl.href)
-                .then((response) => {return response.json()})
-                .then((data) => {
-                    this.data = data;
-                    if (!!data.html) {
-                        this.link.addEventListener('click', this.embedFrame, {once: true});
-                    }
-                    if (!!data.thumbnail_url) {
-                        this.link.style.backgroundImage = `url(${data.thumbnail_url})`;
-                        this.link.style.backgroundRepeat = 'no-repeat';
-                        this.link.style.backgroundSize = '100%';
-                        this.link.style.backgroundPosition = 'center';
-                        this.link.style.backgroundSize = 'cover';
-                    }
-                    if (!!data.title) {
-                        this.link.setAttribute('title', data.title);
-                    }
-                    this.link.dispatchEvent(new Event('load'));
-                })
-                .catch((error) => {
-                    console.error('Request error:', error);
-                });
+            function embedDataReady(data) {
+                if (!!data.html) {
+                    this.link.addEventListener('click', this.embedFrame, {once: true});
+                }
+                if (!!data.thumbnail_url) {
+                    this.link.style.backgroundImage = `url(${data.thumbnail_url})`;
+                    this.link.style.backgroundRepeat = 'no-repeat';
+                    this.link.style.backgroundSize = '100%';
+                    this.link.style.backgroundPosition = 'center';
+                    this.link.style.backgroundSize = 'cover';
+                }
+                if (!!data.title) {
+                    this.link.setAttribute('title', data.title);
+                }
+                readyPromise.resolve(this);
+            }
+            
+            if (!!this.link.dataset.embedFrameSrc) {
+                // If predefined frame url
+                this.data = {
+                    html: `<iframe src="${this.link.dataset.embedFrameSrc}" allow="autoplay; fullscreen"></iframe>`
+                };
+                if (!!this.link.dataset.embedThumbnail) {
+                    this.data.thumbnail_url = this.link.dataset.embedThumbnail;
+                }
+                embedDataReady.bind(this)(this.data);
+            }
+            else {
+                fetch(oEmbedUrl.href)
+                    .then((response) => {return response.json()})
+                    .then((data) => {
+                        this.data = data;
+                        embedDataReady.bind(this)(this.data);
+                    })
+                    .catch((error) => {
+                        console.error(`Request error for oEmbed URL ${oEmbedUrl.href}:`, error);
+                        readyPromise.reject(error);
+                    });
+            }
             
             var playIcon = document.createElement('div');
             playIcon.classList.add('embed-play-icon');
