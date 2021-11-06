@@ -1,0 +1,31 @@
+/**
+ * MessyCMS  https://github.com/rekcuFniarB/messycms#readme
+ * License:  MIT
+ */
+
+.media-embed {
+    display: inline-block;
+    width: 300px;
+    padding: 5px;
+    padding-bottom: 56.25%;
+    border: 1px dotted black;
+    box-sizing: border-box;
+}
+.media-embed[href*="soundcloud.com"] {
+    padding-bottom: 20%;
+}
+@media (min-width: 780px) {
+    .media-embed {
+        width: 640px;
+    }
+}
+.embed-play-icon {
+    width: 0;
+    height: 0;
+    border-top: 40px solid transparent;
+    border-bottom: 40px solid transparent;
+    border-left: 70px solid white;
+}
+.media-embed:hover .embed-play-icon {
+    border-left: 70px solid #c0c0c0;
+}

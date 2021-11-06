@@ -34,6 +34,7 @@ function MediaEmbedded(link) {
                     if (!!data.title) {
                         this.link.setAttribute('title', data.title);
                     }
+                    this.link.dispatchEvent(new Event('load'));
                 })
                 .catch((error) => {
                     console.error('Request error:', error);
