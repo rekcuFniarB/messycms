@@ -308,7 +308,7 @@ MessyCMS = function() {
         if (!!content) {
             this.innerHTML = '';
             if (typeof content == 'object') {
-                this.append(object);
+                this.append(content);
             }
             else if (typeof content == 'string') {
                 this.innerHTML = content;
