@@ -6,7 +6,8 @@ function MediaEmbedded(link) {
     var This = this;
     this.link = link;
     this.oEmbedApis = {
-        'vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json'
+        'vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json',
+        'player.vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json'
     };
     this.getOEmbed = function() {
         if (!this.data) {
