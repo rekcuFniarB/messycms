@@ -61,6 +61,17 @@ function MediaEmbedded(link) {
                 }
                 embedDataReady.bind(this)(this.data);
             }
+            else if (!!this.link.dataset.embedTemplate) {
+                let embedTemplate = document.getElementById(this.link.dataset.embedTemplate);
+                this.data = {html: ''};
+                if (!!embedTemplate) {
+                    this.data.html = embedTemplate.innerHTML;
+                }
+                if (!!this.link.dataset.embedThumbnail) {
+                    this.data.thumbnail_url = this.link.dataset.embedThumbnail;
+                }
+                embedDataReady.bind(this)(this.data);
+            }
             else {
                 fetch(oEmbedUrl.href)
                     .then((response) => {return response.json()})
@@ -118,7 +129,9 @@ function MediaEmbedded(link) {
             this.frame.setAttribute('allow', 'fullscreen; autoplay');
             this.link.append(this.frame);
         } else {
-            this.link.innerHTML = this.data.html;
+            let div = document.createElement('div');
+            div.innerHTML = this.data.html;
+            this.link.parentElement.replaceChild(div, this.link);
         }
         
         return this;
