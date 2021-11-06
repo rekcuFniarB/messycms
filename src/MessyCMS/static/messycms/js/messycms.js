@@ -219,7 +219,7 @@ MessyCMS = function() {
                 })
                 .then((response) => { return response.text(); })
                 .then((response) => {
-                this.innerHTML = response;
+                    this.innerHTML = response;
                     var metadata = this.metadata(requestURL.pathname);
                     if (!!metadata.title) {
                         document.title = metadata.title;
