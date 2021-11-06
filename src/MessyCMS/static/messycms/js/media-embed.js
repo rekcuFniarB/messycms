@@ -66,6 +66,7 @@ function MediaEmbedded(link) {
                 this.data = {html: ''};
                 if (!!embedTemplate) {
                     this.data.html = embedTemplate.innerHTML;
+                    this.data.embedTemplate = embedTemplate;
                 }
                 if (!!this.link.dataset.embedThumbnail) {
                     this.data.thumbnail_url = this.link.dataset.embedThumbnail;
@@ -102,7 +103,7 @@ function MediaEmbedded(link) {
         var div = document.createElement('div');
         div.innerHTML = this.data.html;
         this.frame = div.querySelector('iframe');
-        if (!!this.frame) {
+        if (!!this.frame && !this.data.embedTemplate) {
             var frameSrc = document.createElement('a');
             frameSrc.href= this.frame.src;
             frameSrc.searchParams = new URLSearchParams(frameSrc.search);
