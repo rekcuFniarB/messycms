@@ -113,7 +113,10 @@
             var parent = this;
             if (typeof found === 'undefined') found = null;
             while (parent = parent.parentElement) {
-                if (match(parent)) found = parent;
+                if (match(parent)) {
+                    found = parent;
+                    parent = {};
+                }
             }
             return found;
         };
