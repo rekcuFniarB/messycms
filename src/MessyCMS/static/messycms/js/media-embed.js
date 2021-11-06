@@ -87,12 +87,14 @@ function MediaEmbedded(link) {
                     });
             }
             
-            var playIcon = document.createElement('div');
-            playIcon.classList.add('embed-play-icon');
-            this.link.append(playIcon);
-            this.link.style.position = 'relative';
-            playIcon.style.position = 'absolute';
-            playIcon.centerVertically().centerHorizontally();
+            if (!this.link.dataset.embedNoPlayIcon) {
+                this.link.playIcon = document.createElement('div');
+                this.link.playIcon.classList.add('embed-play-icon');
+                this.link.append(this.link.playIcon);
+                this.link.style.position = 'relative';
+                this.link.playIcon.style.position = 'absolute';
+                this.link.playIcon.centerVertically().centerHorizontally();
+            }
         }
         return this;
     }.bind(this);
@@ -122,16 +124,24 @@ function MediaEmbedded(link) {
             this.frame.height = '';
             this.frame.style.width = '100%';
             this.frame.style.height = '100%';
+            var sizeUpd = false;
             if (!!this.data.embedWidth) {
                 this.link.style.width = this.data.embedWidth;
+                sizeUpd = true;
             }
             if (!!this.data.embedHeight) {
                 this.link.style.height = this.data.embedHeight;
+                this.link.style.paddingBottom = 0;
+                sizeUpd = true;
+            }
+            if (!!this.link.playIcon && sizeUpd) {
+                this.link.playIcon.centerHorizontally().centerVertically();
             }
             this.link.style.position = 'relative';
             this.frame.style.position = 'absolute';
             this.frame.style.left = 0;
             this.frame.style.top = 0;
+            this.frame.style.border = 0;
             this.frame.setAttribute('loading', 'lazy');
             this.frame.setAttribute('allowfullscreen', true);
             this.frame.setAttribute('allow', 'fullscreen; autoplay');

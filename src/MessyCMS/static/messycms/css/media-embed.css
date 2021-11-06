@@ -8,7 +8,7 @@
     width: 300px;
     padding: 5px;
     padding-bottom: 56.25%;
-    border: 1px dotted black;
+    /*border: 1px dotted black;*/
     box-sizing: border-box;
 }
 .media-embed[href*="soundcloud.com"] {
