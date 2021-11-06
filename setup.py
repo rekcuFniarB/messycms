@@ -31,6 +31,7 @@ setuptools.setup(
     #packages=setuptools.find_packages("src"),  # include all packages under src
     packages=[
         'MessyCMS',
+        'MessyCMS.models',
         'MessyCMS.plugins',
         'MessyCMS.plugins.tgimages',
         'MessyCMS.plugins.tgimages.templates.tgimages',

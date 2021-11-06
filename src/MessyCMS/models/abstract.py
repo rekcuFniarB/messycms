@@ -8,16 +8,16 @@ from mptt.models import MPTTModel, TreeForeignKey
 from django.utils import timezone
 from django.utils.text import slugify
 from django.urls import reverse
-from . import plugins
+from MessyCMS import plugins
 import json
 
 AUTH_USER_MODEL = get_user_model()
 
-if hasattr(settings, 'MESSYCMS_BASE_MODEL'):
-    ## Developer may define own models if he wants to define additional fields and methods
-    Node = plugins.import_module(settings.MESSYCMS_BASE_MODEL)
-else:
-    class Node(MPTTModel):
+if True:
+    class MessyBase(MPTTModel):
+        class Meta:
+            abstract = True
+        
         __conf = None
         __rendered = ''
         
@@ -67,7 +67,7 @@ else:
                     ## Trying to find conf of parent if exists
                     parent_conf = self.parent.get_children().filter(type='.conf').first()
                     if not parent_conf:
-                        parent_conf = Node.objects.create(type='.conf', parent_id=self.parent_id)
+                        parent_conf = plugins.get_model().objects.create(type='.conf', parent_id=self.parent_id)
                     if parent_conf:
                         self.parent_id = parent_conf.id
             
@@ -90,7 +90,7 @@ else:
                 #self.__conf = self.get_children().filter(type='.conf').first()
                 ## For some strange reason above method sometimes returns None
                 ## when this function is invoked from template.
-                self.__conf = Node.objects.filter(parent_id=self.id, type='.conf').first()
+                self.__conf = plugins.get_model().objects.filter(parent_id=self.id, type='.conf').first()
                 
                 if self.__conf:
                     self.__conf = self.__conf.get_children()
@@ -343,30 +343,3 @@ else:
                 template = self.prop('template', self.content)
             
             return template
-        
-
-#class PageConf():
-    #__data__ = None
-    
-    #def __init__(self, data):
-        #if not data:
-            #data = {}
-        #self.__dict__ = data
-    
-    #def __call__(self):
-        #return self.__dict__
-    
-    #def __bool__(self):
-        #return bool(self.__dict__)
-    
-    #def __iter__(self):
-        #if type(self.__dict__) is dict:
-            #return iter(self.__dict__)
-        #else:
-            #return self.__dict__
-
-## Table for mamytomany sites reference. Wasn't created automatically by migrations for some reason.
-#    CREATE TABLE IF NOT EXISTS "MessyCMS_node_sites" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "node_id" integer NOT NULL REFERENCES "MessyCMS_node" ("id") DEFERRABLE INITIALLY DEFERRED, "site_id" integer NOT NULL REFERENCES "django_site" ("id") DEFERRABLE INITIALLY DEFERRED);
-#    CREATE UNIQUE INDEX "MessyCMS_node_sites_node_id_site_id_bc85e8ad_uniq" ON "MessyCMS_node_sites" ("node_id", "site_id");
-#    CREATE INDEX "MessyCMS_node_sites_node_id_faa45963" ON "MessyCMS_node_sites" ("node_id");
-#    CREATE INDEX "MessyCMS_node_sites_site_id_96701cdf" ON "MessyCMS_node_sites" ("site_id");
