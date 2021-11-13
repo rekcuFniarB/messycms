@@ -7,7 +7,7 @@ function MediaEmbedded(link) {
     this.link = link;
     this.oEmbedApis = {
         'vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json',
-        'player.vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json'
+        'player.vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&api=true&format=json'
     };
     var readyPromise = {};
     this.ready = new Promise((resolve, reject) => {
@@ -154,7 +154,8 @@ function MediaEmbedded(link) {
             this.frame.setAttribute('allow', 'fullscreen; autoplay');
             this._resolveFrame(this.frame);
             this.link.append(this.frame);
-            this.link.style.pointerEvents = 'none';
+            //this.link.style.pointerEvents = 'none';
+            this.link.removeAttribute('href');
         } else {
             let div = document.createElement('div');
             div.innerHTML = this.data.html;
@@ -336,6 +337,26 @@ class MessyPlaylist {
                         this.play(this.next().value);
                     }
                 }
+                else if (event.origin.indexOf('vimeo.com') > -1) {
+                    // https://github.com/vimeo/player-api/blob/archived/javascript/froogaloop.js
+                    if (event.data.indexOf('"event":"ready"') > -1) {
+                        this.current.frame.contentWindow.postMessage(JSON.stringify(
+                            {method: 'play'}
+                        ), '*');
+                        this.current.frame.contentWindow.postMessage(JSON.stringify(
+                            {method: 'addEventListener', value: 'timeupdate'}
+                        ), '*');
+                        this.current.frame.contentWindow.postMessage(JSON.stringify(
+                            {method: 'addEventListener', value: 'ended'}
+                        ), '*');
+                    }
+                    else if (event.data.indexOf('"event":"playProgress"') > -1) {
+                        this.onPlaybackProgress(JSON.parse(event.data));
+                    }
+                    else if (event.data.indexOf('"event":"finish"') > -1) {
+                        this.play(this.next().value);
+                    }
+                }
                 else if (event.data.indexOf('"method":"ready"') > -1) {
                     // Soundcloud ready
                     this.current.frame.contentWindow.postMessage(JSON.stringify(
@@ -431,6 +452,10 @@ class MessyPlaylist {
                     event.data.duration = this.current.frame.dataset.duration;
                 }
             }
+            else if (!!event.data && !!event.data.seconds && !event.data.currentTime) {
+                // Vimeo
+                event.data.currentTime = event.data.seconds;
+            }
             
             if (typeof event.data.duration === 'undefined' && typeof this.current.frame.dataset.duration != 'undefined') {
                 // Some services doesn't send duration every time update
@@ -458,9 +483,9 @@ class MessyPlaylist {
                             if (!!this.current && !!this.current.frame && !!this.current.frame.progressBarCurrent) {
                                 this.current.frame.progressBarCurrent.style.width = `${width}%`;
                                 this.current.frame.progressBarCurrent.currentWidth = width;
+                                this.current.frame.dataset.duration = event.data.duration;
+                                this.current.frame.dataset.currentTime = event.data.currentTime;
                             }
-                            this.current.frame.dataset.duration = event.data.duration;
-                            this.current.frame.dataset.currentTime = event.data.currentTime;
                         });
                     }
                 }
@@ -490,6 +515,10 @@ class MessyPlaylist {
             this.current.frame.contentWindow.postMessage(JSON.stringify({
                 event: "command", func: "seekTo", args: [gotoTime]
             }), '*')
+            // Vimeo
+            this.current.frame.contentWindow.postMessage(JSON.stringify({
+                method: 'seekTo', value: gotoTime
+            }), '*');
         }
     }
     
