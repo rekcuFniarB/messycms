@@ -508,25 +508,35 @@ class MessyPlaylist {
         var ratio = eWidth / event.target.offsetWidth;
         if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow && !!this.current.frame.dataset.duration) {
             var gotoTime = this.current.frame.dataset.duration * ratio;
-            this.current.frame.contentWindow.postMessage(JSON.stringify({currentTime: gotoTime}), '*');
-            // SC (expects in ms)
-            this.current.frame.contentWindow.postMessage(JSON.stringify(
-                {method: 'seekTo', value: gotoTime * 1000}
-            ), '*');
-            // 23video
-            this.current.frame.contentWindow.postMessage(JSON.stringify({
-                f: 'set',
-                cbId: 'setCurrentTime',
-                args: ['currentTime', gotoTime]
-            }), '*');
-            // YT
-            this.current.frame.contentWindow.postMessage(JSON.stringify({
-                event: "command", func: "seekTo", args: [gotoTime]
-            }), '*')
-            // Vimeo
-            this.current.frame.contentWindow.postMessage(JSON.stringify({
-                method: 'seekTo', value: gotoTime
-            }), '*');
+            
+            if (this.current.frame.src.indexOf('soundcloud') > -1) {
+                // SC (expects in ms)
+                this.current.frame.contentWindow.postMessage(JSON.stringify({
+                    method: 'seekTo', value: gotoTime * 1000
+                }), '*');
+            }
+            else if (this.current.frame.src.indexOf('vimeo') > -1) {
+                this.current.frame.contentWindow.postMessage(JSON.stringify({
+                    method: 'seekTo', value: gotoTime
+                }), '*');
+            }
+            else if (this.current.frame.src.indexOf('youtube') > -1) {
+                this.current.frame.contentWindow.postMessage(JSON.stringify({
+                    event: "command", func: "seekTo", args: [gotoTime]
+                }), '*');
+            }
+            else if (this.current.frame.src.indexOf('23video') > -1 || this.current.frame.src.indexOf('twentythree') > -1) {
+                this.current.frame.contentWindow.postMessage(JSON.stringify({
+                    f: 'set',
+                    cbId: 'setCurrentTime',
+                    args: ['currentTime', gotoTime]
+                }), '*');
+            }
+            else {
+                this.current.frame.contentWindow.postMessage(JSON.stringify({
+                    currentTime: gotoTime
+                }), '*');
+            }
         }
     }
     
