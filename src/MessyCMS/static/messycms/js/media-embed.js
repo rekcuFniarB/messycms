@@ -586,16 +586,22 @@ class MessyPlaylist {
     
     onEmbedReady(event) {
         if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow) {
-            this.pollYoutube();
-            this.pollTimer = setInterval(this.pollYoutube.bind(this), 100);
+            if (this.current.frame.src.indexOf('youtube') > -1) {
+                this.pollYoutube();
+                this.pollTimer = setInterval(this.pollYoutube.bind(this), 100);
+            }
         }
     }
     
     pollYoutube() {
-        // https://stackoverflow.com/questions/7443578/youtube-iframe-api-how-do-i-control-an-iframe-player-thats-already-in-the-html
-        // https://developers.google.com/youtube/iframe_api_reference?hl=en
-        this.current.frame.contentWindow.postMessage(JSON.stringify({event: 'listening', id: 'youtube'}), '*');
-        this.current.frame.contentWindow.postMessage(JSON.stringify({event: 'command', func: 'playVideo', args: ''}), '*');
+        if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow && this.current.frame.src.indexOf('youtube') > -1) {
+            // https://stackoverflow.com/questions/7443578/youtube-iframe-api-how-do-i-control-an-iframe-player-thats-already-in-the-html
+            // https://developers.google.com/youtube/iframe_api_reference?hl=en
+            this.current.frame.contentWindow.postMessage(JSON.stringify({event: 'listening', id: 'youtube'}), '*');
+            this.current.frame.contentWindow.postMessage(JSON.stringify({event: 'command', func: 'playVideo', args: ''}), '*');
+        } else {
+            clearInterval(this.pollTimer);
+        }
     }
     
     next() {
