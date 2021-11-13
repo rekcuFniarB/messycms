@@ -21,6 +21,7 @@ td.field-available > img {
     z-index: 100;
 }
 .messy-modal {
+    max-width: 100%;
     background-color: #ffffff;
     color: #000000;
     display: inline-block;

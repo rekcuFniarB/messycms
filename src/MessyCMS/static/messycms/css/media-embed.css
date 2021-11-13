@@ -3,21 +3,22 @@
  * License:  MIT
  */
 
-.media-embed {
+.media-embed,
+.media-embed-wrapper {
     display: inline-block;
-    width: 300px;
-    padding: 5px;
-    padding-bottom: 56.25%;
-    /*border: 1px dotted black;*/
+    width: 480px;
+    max-width: 100%;
     box-sizing: border-box;
 }
-.media-embed[href*="soundcloud.com"] {
-    padding-bottom: 20%;
+.media-embed {
+    padding: 5px;
+    padding-bottom: 56.25%;
 }
-@media (min-width: 780px) {
-    .media-embed {
-        width: 640px;
-    }
+.media-embed[href*="soundcloud.com"] {
+    padding-bottom: 15%;
+}
+.messy-modal .media-embed {
+    width: 780px;
 }
 .embed-play-icon {
     width: 0;
@@ -28,4 +29,29 @@
 }
 .media-embed:hover .embed-play-icon {
     border-left: 70px solid #c0c0c0;
+}
+
+.player-container {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    max-width: 100%;
+}
+.player-container:not(.active) {
+    display: none;
+}
+.player-control {
+    display: flex;
+}
+.player-control .player-progressbar {
+    flex: auto;
+}
+.player-control .player-progressbar .player-progressbar-current {
+    width: 0;
+    height: 100%;
+    background-color: #e9e9ed;
+    pointer-events: none;
+}
+.player-control button i {
+    pointer-events: none;
 }
