@@ -39,7 +39,9 @@ function MediaEmbedded(link) {
             
             function embedDataReady(data) {
                 if (!!data.html) {
-                    this.link.addEventListener('click', this.embedFrame, {once: true});
+                    this.link.addEventListener('click', (event) => {
+                        this.embedFrame(event).tryToPlay(null, 'click');
+                    }, {once: true});
                 }
                 if (!!data.thumbnail_url) {
                     this.link.style.backgroundImage = `url(${data.thumbnail_url})`;
@@ -152,6 +154,7 @@ function MediaEmbedded(link) {
             this.frame.setAttribute('allow', 'fullscreen; autoplay');
             this._resolveFrame(this.frame);
             this.link.append(this.frame);
+            this.link.style.pointerEvents = 'none';
         } else {
             let div = document.createElement('div');
             div.innerHTML = this.data.html;
@@ -162,6 +165,34 @@ function MediaEmbedded(link) {
             this.link.parentElement.replaceChild(div, this.link);
         }
         return this;
+    }.bind(this);
+    
+    this.tryToPlay = function (times, source) {
+        if (typeof times === 'undefined') {
+            times = -1
+        }
+        times ++;
+        if (times > 70) {
+            return;
+        }
+        
+        if (!!this.frame && !!this.frame.contentWindow) {
+            // 23
+            this.frame.contentWindow.postMessage(JSON.stringify({
+                f: 'set',
+                cbId: 'playing',
+                args: ['playing', true]
+            }), '*');
+            // SC
+            this.frame.contentWindow.postMessage(JSON.stringify(
+                {method: 'play'}
+            ), '*');
+            // YT
+            this.frame.contentWindow.postMessage(JSON.stringify(
+                {event: 'command', func: 'playVideo', args: ''}
+            ), '*');
+            setTimeout(() => { this.tryToPlay(times, 'setTimeout'); }, 100);
+        }
     }.bind(this);
     
     this._resolveFrame = function(iFrame) {
@@ -502,8 +533,8 @@ class MessyPlaylist {
     pollYoutube() {
         // https://stackoverflow.com/questions/7443578/youtube-iframe-api-how-do-i-control-an-iframe-player-thats-already-in-the-html
         // https://developers.google.com/youtube/iframe_api_reference?hl=en
-        this.current.frame.contentWindow.postMessage(JSON.stringify({"event":"listening","id":"youtube"}), '*');
-        this.current.frame.contentWindow.postMessage(JSON.stringify({"event":"command","func":"playVideo","args":""}), '*');
+        this.current.frame.contentWindow.postMessage(JSON.stringify({event: 'listening', id: 'youtube'}), '*');
+        this.current.frame.contentWindow.postMessage(JSON.stringify({event: 'command', func: 'playVideo', args: ''}), '*');
     }
     
     next() {
