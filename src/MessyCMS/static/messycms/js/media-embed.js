@@ -167,7 +167,7 @@ function MediaEmbedded(link) {
             this.frame.setAttribute('allow', 'fullscreen; autoplay');
             this._resolveFrame(this.frame);
             this.link.append(this.frame);
-            //this.link.style.pointerEvents = 'none';
+            this.link.style.pointerEvents = 'none';
             if (!this.link.dataset.href) {
                 this.link.dataset.href = this.link.href;
             }
@@ -442,6 +442,10 @@ class MessyPlaylist {
         }
         else if (event.target.classList.contains('btn-playlist-next')) {
             this.play(this.next().value);
+        }
+        else if (event.target.classList.contains('btn-playlist-close')) {
+            // Close popup.
+            this.play(null);
         }
         else if (event.target.classList.contains('player-progressbar')) {
             this.setCurrentTime(event);
