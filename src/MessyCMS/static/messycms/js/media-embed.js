@@ -149,24 +149,34 @@ function MediaEmbedded(link) {
             this.frame.setAttribute('loading', 'lazy');
             this.frame.setAttribute('allowfullscreen', true);
             this.frame.setAttribute('allow', 'fullscreen; autoplay');
-            // We will resolve this promise when frame loaded
-            var promiseActions = {};
-            this.frame.ready = new Promise((resolve, reject) => {
-                promiseActions.resolve = resolve.bind(this.frame);
-                promiseActions.reject = reject.bind(this.frame);
-            });
-            Object.assign(this.frame.ready, promiseActions);
-            this.frame.addEventListener('load', function(event) {
-                event.target.ready.resolve(event);
-            });
+            this._resolveFrame(this.frame);
             this.link.append(this.frame);
         } else {
             let div = document.createElement('div');
             div.innerHTML = this.data.html;
+            this.frame = div.querySelector('iframe');
+            if (!!this.frame) {
+                this._resolveFrame(this.frame);
+            }
             this.link.parentElement.replaceChild(div, this.link);
         }
-        
         return this;
+    }.bind(this);
+    
+    this._resolveFrame = function(iFrame) {
+        if (typeof iFrame.ready === 'undefined') {
+            // We will resolve this promise when frame loaded
+            var promiseActions = {};
+            iFrame.ready = new Promise((resolve, reject) => {
+                promiseActions.resolve = resolve.bind(iFrame);
+                promiseActions.reject = reject.bind(iFrame);
+            });
+            Object.assign(iFrame.ready, promiseActions);
+            iFrame.addEventListener('load', function(event) {
+                event.target.ready.resolve(event);
+            });
+        }
+        return iFrame;
     }.bind(this);
     
     this.getOEmbed();
