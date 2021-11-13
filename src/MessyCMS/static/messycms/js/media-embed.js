@@ -127,6 +127,11 @@ function MediaEmbedded(link) {
             }
             frameSrc.search = frameSrc.searchParams.toString();
             this.frame.src = frameSrc.href;
+            frameHost = frameSrc.hostname.split('.').reverse();
+            documentHost = document.location.hostname.split('.').reverse();
+            if (documentHost[0] === frameHost[0] && documentHost[1] === frameHost[1]) {
+                this.frame.referrerPolicy = 'origin';
+            }
             this.frame.width = '';
             this.frame.height = '';
             this.frame.style.width = '100%';
