@@ -324,9 +324,15 @@ class MessyPlaylist {
                 else if (event.data.indexOf('"relativePosition":') > -1) {
                     this.onPlaybackProgress(JSON.parse(event.data));
                 }
+                else if (event.data === 'FRAMELOADED') {
+                    // pdj
+                    this.current.frame.contentWindow.postMessage(JSON.stringify(
+                        ['.playerr_bigplaybutton', 'click']
+                    ), '*');
+                }
             }
             else if (typeof event.data === 'object') {
-                if (['ended', 'error', 'stalled'].indexOf(event.data.type) > -1) {
+                if (['ended', 'error', '_stalled'].indexOf(event.data.type) > -1) {
                     if (event.data.type !== 'ended') {
                         console.error('PLAYLIST ITEM ERROR:', event.data);
                     }
@@ -455,9 +461,12 @@ class MessyPlaylist {
             embedMedia.embed = new MediaEmbedded(embedMedia);
             embedMedia.embed.ready.then((embed) => {
                 this.current.frame = embed.embedFrame().frame;
+                this.onEmbedReady({frame: this.current.frame});
             });
         }
     }
+    
+    onEmbedReady(event) {}
     
     next() {
         var items = [...this.list.querySelectorAll('.playlist-item')];
