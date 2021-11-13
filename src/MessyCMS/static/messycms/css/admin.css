@@ -2,9 +2,11 @@ td.field-available > img {
     cursor: pointer;
 }
 
+.d-none,
 .messy-d-none {
     display: none;
 }
+.d-block,
 .messy-d-block {
     display: block;
 }
