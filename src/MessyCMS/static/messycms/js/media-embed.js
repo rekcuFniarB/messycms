@@ -271,11 +271,14 @@ class MessyPlaylist {
                 }
             }
             else if (typeof event.data === 'object') {
-                if (['ended', 'error'].indexOf(event.data.type) > -1) {
-                    if (event.data.type === 'error') {
+                if (['ended', 'error', 'stalled'].indexOf(event.data.type) > -1) {
+                    if (event.data.type !== 'ended') {
                         console.error('PLAYLIST ITEM ERROR:', event.data);
                     }
                     this.play(this.next().value);
+                }
+                else if (event.data.type === 'timeupdate') {
+                    this.onProgress(event);
                 }
             }
         }
@@ -293,7 +296,28 @@ class MessyPlaylist {
         }
     }
     
+    onProgress(event) {
+        if (!!this.container) {
+            if (!this.current.frame.progressBarCurrent) {
+                this.current.frame.progressBarCurrent = this.container.querySelector('.player-progressbar-current');
+            }
+            if (!!this.current.frame.progressBarCurrent) {
+                if (event.data.duration && event.data.currentTime) {
+                    var width = (event.data.currentTime * 100) / event.data.duration;
+                    if (width > 100) {
+                        width = 100;
+                    }
+                    window.requestAnimationFrame(() => {
+                        this.current.frame.progressBarCurrent.style.width = `${width}%`;
+                    });
+                }
+            }
+        }
+    }
+    
     play(item, event) {
+        // Reset progressbar
+        this.onPropertychange({data: {duration: 0, currentTime: 0}});
         this.current = item;
         if (!item) {
             // End of playlist?
