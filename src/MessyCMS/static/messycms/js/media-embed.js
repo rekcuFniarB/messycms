@@ -273,7 +273,7 @@ class MessyPlaylist {
                     this.current.frame.contentWindow.postMessage(['#big_play_button', 'click'], '*');
                 }
                 else if (event.data.indexOf('"relativePosition":') > -1) {
-                    this.onProgress(JSON.parse(event.data));
+                    this.onPlaybackProgress(JSON.parse(event.data));
                 }
             }
             else if (typeof event.data === 'object') {
@@ -284,7 +284,7 @@ class MessyPlaylist {
                     this.play(this.next().value);
                 }
                 else if (event.data.type === 'timeupdate') {
-                    this.onProgress(event);
+                    this.onPlaybackProgress(event);
                 }
             }
         }
@@ -305,7 +305,7 @@ class MessyPlaylist {
         }
     }
     
-    onProgress(event) {
+    onPlaybackProgress(event) {
         if (!!this.container && !!this.current && this.current.frame) {
             if (!this.current.frame.progressBarCurrent) {
                 this.current.frame.progressBarCurrent = this.container.querySelector('.player-progressbar-current');
@@ -324,16 +324,27 @@ class MessyPlaylist {
                     var width = (event.data.currentTime * 100) / event.data.duration;
                     if (width > 100) {
                         width = 100;
-                    }
-                    window.requestAnimationFrame(() => {
-                        // It may be undefined due to delayed execution
-                        // especially when switched to next track.
-                        if (!!this.current && !!this.current.frame && !!this.current.frame.progressBarCurrent) {
-                            this.current.frame.progressBarCurrent.style.width = `${width}%`;
+                    } else {
+                        var arWidth = width.toString().split('.');
+                        if (!!arWidth[1]) {
+                            arWidth[1] = arWidth[1].slice(0, 1);
                         }
-                        this.current.frame.dataset.duration = event.data.duration;
-                        this.current.frame.dataset.currentTime = event.data.currentTime;
-                    });
+                        // Values like 10.1234566 become 10.1
+                        width = parseFloat(arWidth.join('.'));
+                    }
+                    // Don't call to often to reduce CPU usage
+                    if (this.current.frame.progressBarCurrent.currentWidth != width) {
+                        window.requestAnimationFrame(() => {
+                            // It may be undefined due to delayed execution
+                            // especially when switched to next track.
+                            if (!!this.current && !!this.current.frame && !!this.current.frame.progressBarCurrent) {
+                                this.current.frame.progressBarCurrent.style.width = `${width}%`;
+                                this.current.frame.progressBarCurrent.currentWidth = width;
+                            }
+                            this.current.frame.dataset.duration = event.data.duration;
+                            this.current.frame.dataset.currentTime = event.data.currentTime;
+                        });
+                    }
                 }
             }
         }
@@ -342,17 +353,22 @@ class MessyPlaylist {
     setCurrentTime(event) {
         var eRectangle = event.target.getBoundingClientRect();
         var eWidth = event.clientX - eRectangle.left;
+        // Calculating relative offset
         var ratio = eWidth / event.target.offsetWidth;
-        if (!!this.current.frame.dataset.duration) {
+        if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow && !!this.current.frame.dataset.duration) {
             var gotoTime = this.current.frame.dataset.duration * ratio;
             this.current.frame.contentWindow.postMessage(JSON.stringify({currentTime: gotoTime}), '*');
+            // SC (expects in ms)
+            this.current.frame.contentWindow.postMessage(JSON.stringify(
+                {method: 'seekTo', value: gotoTime * 1000}
+            ), '*');
         }
     }
     
     play(item, event) {
         this.current = item;
         // Reset progressbar
-        //this.onProgress({data: {duration: 0, currentTime: 0}});
+        //this.onPlaybackProgress({data: {duration: 0, currentTime: 0}});
         
         if (!item) {
             // End of playlist?
