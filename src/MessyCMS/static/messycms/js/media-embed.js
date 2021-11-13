@@ -209,7 +209,7 @@ class MessyPlaylist {
         osc.frequency.value = 20000; // Hz
         osc.connect(context.destination); // connect it to the destination
         osc.start(); // start the oscillator
-        osc.stop(context.currentTime + 0.5); // stop 0.5 seconds after the current time
+        osc.stop(context.currentTime + 0.1); // stop 0.1 seconds after the current time
     }
     
     postMessagesResponse(event) {
@@ -235,6 +235,15 @@ class MessyPlaylist {
                 }
                 else if (event.data == 'playerinited') {
                     // Bandcamp.com
+                    this.current.frame.contentWindow.postMessage(['#big_play_button', 'click'], '*');
+                }
+            }
+            else if (typeof event.data === 'object') {
+                if (['ended', 'error'].indexOf(event.data.type) > -1) {
+                    if (event.data.type === 'error') {
+                        console.error('PLAYLIST ITEM ERROR:', event.data);
+                    }
+                    this.play(this.next().value);
                 }
             }
         }
