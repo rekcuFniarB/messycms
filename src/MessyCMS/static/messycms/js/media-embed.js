@@ -227,7 +227,7 @@ class MessyPlaylist {
     
     postMessagesResponse(event) {
         this.log('MESSAGE', event.data, event.origin);
-        if (!!this.current.frame && !!this.current.frame.contentWindow) {
+        if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow) {
             if (typeof event.data === 'string') {
                 if (event.origin.indexOf('23video.com') > -1 && event.data === '{"ready":true}') {
                     // 23video ready, start playback
@@ -254,6 +254,9 @@ class MessyPlaylist {
                         {method: 'addEventListener', value: 'finish'}
                     ), '*');
                     this.current.frame.contentWindow.postMessage(JSON.stringify(
+                        {method: 'addEventListener', value: 'playProgress'}
+                    ), '*');
+                    this.current.frame.contentWindow.postMessage(JSON.stringify(
                         {method: 'play'}
                     ), '*');
                 }
@@ -268,6 +271,9 @@ class MessyPlaylist {
                 else if (event.data == 'playerinited') {
                     // Bandcamp.com
                     this.current.frame.contentWindow.postMessage(['#big_play_button', 'click'], '*');
+                }
+                else if (event.data.indexOf('"relativePosition":') > -1) {
+                    this.onProgress(JSON.parse(event.data));
                 }
             }
             else if (typeof event.data === 'object') {
@@ -304,6 +310,15 @@ class MessyPlaylist {
             if (!this.current.frame.progressBarCurrent) {
                 this.current.frame.progressBarCurrent = this.container.querySelector('.player-progressbar-current');
             }
+            if (typeof event.data === 'undefined') {
+                event.data = {};
+            }
+            if (!!event.value && !!event.value.relativePosition) {
+                // This came from SC
+                event.data.currentTime = event.value.currentPosition / 1000; // was in ms
+                // relativePosition is 0.x values
+                event.data.duration = event.data.currentTime / event.value.relativePosition;
+            }
             if (!!this.current.frame.progressBarCurrent) {
                 if (event.data.duration && event.data.currentTime) {
                     var width = (event.data.currentTime * 100) / event.data.duration;
@@ -313,7 +328,7 @@ class MessyPlaylist {
                     window.requestAnimationFrame(() => {
                         // It may be undefined due to delayed execution
                         // especially when switched to next track.
-                        if (!!this.current.frame.progressBarCurrent) {
+                        if (!!this.current && !!this.current.frame && !!this.current.frame.progressBarCurrent) {
                             this.current.frame.progressBarCurrent.style.width = `${width}%`;
                         }
                         this.current.frame.dataset.duration = event.data.duration;
