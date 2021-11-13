@@ -111,9 +111,10 @@ function MediaEmbedded(link) {
             frameSrc.href= this.frame.src;
             frameSrc.searchParams = new URLSearchParams(frameSrc.search);
             if (frameSrc.hostname == 'www.youtube.com') {
-                frameSrc.hostname = 'www.youtube-nocookie.com';
+                //frameSrc.hostname = 'www.youtube-nocookie.com';
                 frameSrc.searchParams.set('autoplay', 1);
                 frameSrc.searchParams.set('rel', 0);
+                frameSrc.searchParams.set('enablejsapi', 1);
             }
             else if (frameSrc.hostname == 'w.soundcloud.com') {
                 frameSrc.searchParams.set('auto_play', 'true');
@@ -184,6 +185,8 @@ function MediaEmbedded(link) {
 
 class MessyPlaylist {
     current;
+    pollTimer;
+    
     constructor(config) {
         if (typeof config === 'object') {
             Object.assign(this, config);
@@ -237,6 +240,7 @@ class MessyPlaylist {
     
     postMessagesResponse(event) {
         this.log('MESSAGE', event.data, event.origin);
+        clearInterval(this.pollTimer);
         if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow) {
             if (typeof event.data === 'string') {
                 if (event.origin.indexOf('23video.com') > -1) {
@@ -317,11 +321,18 @@ class MessyPlaylist {
                     // SC playback finished
                     this.play(this.next().value);
                 }
+                else if (event.data.indexOf('"playerState":0') > -1) {
+                    // YT end
+                    this.play(this.next().value);
+                }
                 else if (event.data == 'playerinited') {
                     // Bandcamp.com
                     this.current.frame.contentWindow.postMessage(['#big_play_button', 'click'], '*');
                 }
                 else if (event.data.indexOf('"relativePosition":') > -1) {
+                    this.onPlaybackProgress(JSON.parse(event.data));
+                }
+                else if (event.data.indexOf('"currentTime":') > -1) {
                     this.onPlaybackProgress(JSON.parse(event.data));
                 }
                 else if (event.data === 'FRAMELOADED') {
@@ -366,7 +377,12 @@ class MessyPlaylist {
                 this.current.frame.progressBarCurrent = this.container.querySelector('.player-progressbar-current');
             }
             if (typeof event.data === 'undefined') {
-                event.data = {};
+                if (typeof event.info === 'object') {
+                    // This came from Youtube
+                    event.data = event.info;
+                } else {
+                    event.data = {};
+                }
             }
             if (!!event.value && !!event.value.relativePosition) {
                 // This came from SC
@@ -384,6 +400,12 @@ class MessyPlaylist {
                     event.data.duration = this.current.frame.dataset.duration;
                 }
             }
+            
+            if (typeof event.data.duration === 'undefined' && typeof this.current.frame.dataset.duration != 'undefined') {
+                // Some services doesn't send duration every time update
+                event.data.duration = this.current.frame.dataset.duration;
+            }
+            
             if (!!this.current.frame.progressBarCurrent) {
                 if (event.data.duration && event.data.currentTime) {
                     var width = (event.data.currentTime * 100) / event.data.duration;
@@ -433,6 +455,10 @@ class MessyPlaylist {
                 cbId: 'setCurrentTime',
                 args: ['currentTime', gotoTime]
             }), '*');
+            // YT
+            this.current.frame.contentWindow.postMessage(JSON.stringify({
+                event: "command", func: "seekTo", args: [gotoTime]
+            }), '*')
         }
     }
     
@@ -466,7 +492,17 @@ class MessyPlaylist {
         }
     }
     
-    onEmbedReady(event) {}
+    onEmbedReady(event) {
+        this.pollYoutube();
+        this.pollTimer = setInterval(this.pollYoutube.bind(this), 100);
+    }
+    
+    pollYoutube() {
+        // https://stackoverflow.com/questions/7443578/youtube-iframe-api-how-do-i-control-an-iframe-player-thats-already-in-the-html
+        // https://developers.google.com/youtube/iframe_api_reference?hl=en
+        this.current.frame.contentWindow.postMessage(JSON.stringify({"event":"listening","id":"youtube"}), '*');
+        this.current.frame.contentWindow.postMessage(JSON.stringify({"event":"command","func":"playVideo","args":""}), '*');
+    }
     
     next() {
         var items = [...this.list.querySelectorAll('.playlist-item')];
