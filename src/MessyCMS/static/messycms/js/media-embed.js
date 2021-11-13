@@ -493,8 +493,10 @@ class MessyPlaylist {
     }
     
     onEmbedReady(event) {
-        this.pollYoutube();
-        this.pollTimer = setInterval(this.pollYoutube.bind(this), 100);
+        if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow) {
+            this.pollYoutube();
+            this.pollTimer = setInterval(this.pollYoutube.bind(this), 100);
+        }
     }
     
     pollYoutube() {
