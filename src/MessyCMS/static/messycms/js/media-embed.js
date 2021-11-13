@@ -294,10 +294,13 @@ class MessyPlaylist {
         else if (event.target.classList.contains('btn-playlist-next')) {
             this.play(this.next().value);
         }
+        else if (event.target.classList.contains('player-progressbar')) {
+            this.setCurrentTime(event);
+        }
     }
     
     onProgress(event) {
-        if (!!this.container) {
+        if (!!this.container && !!this.current && this.current.frame) {
             if (!this.current.frame.progressBarCurrent) {
                 this.current.frame.progressBarCurrent = this.container.querySelector('.player-progressbar-current');
             }
@@ -308,17 +311,34 @@ class MessyPlaylist {
                         width = 100;
                     }
                     window.requestAnimationFrame(() => {
-                        this.current.frame.progressBarCurrent.style.width = `${width}%`;
+                        // It may be undefined due to delayed execution
+                        // especially when switched to next track.
+                        if (!!this.current.frame.progressBarCurrent) {
+                            this.current.frame.progressBarCurrent.style.width = `${width}%`;
+                        }
+                        this.current.frame.dataset.duration = event.data.duration;
+                        this.current.frame.dataset.currentTime = event.data.currentTime;
                     });
                 }
             }
         }
     }
     
+    setCurrentTime(event) {
+        var eRectangle = event.target.getBoundingClientRect();
+        var eWidth = event.clientX - eRectangle.left;
+        var ratio = eWidth / event.target.offsetWidth;
+        if (!!this.current.frame.dataset.duration) {
+            var gotoTime = this.current.frame.dataset.duration * ratio;
+            this.current.frame.contentWindow.postMessage(JSON.stringify({currentTime: gotoTime}), '*');
+        }
+    }
+    
     play(item, event) {
-        // Reset progressbar
-        this.onPropertychange({data: {duration: 0, currentTime: 0}});
         this.current = item;
+        // Reset progressbar
+        //this.onProgress({data: {duration: 0, currentTime: 0}});
+        
         if (!item) {
             // End of playlist?
             if (!!this.container) {
@@ -326,6 +346,7 @@ class MessyPlaylist {
                 return false;
             }
         }
+        
         var embedMedia = document.createElement('a');
         embedMedia.classList.add('media-embed');
         embedMedia.href = item.href;
