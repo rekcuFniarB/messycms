@@ -218,6 +218,7 @@ function MediaEmbedded(link) {
 class MessyPlaylist {
     current;
     pollTimer;
+    soundTested;
     
     constructor(config) {
         if (typeof config === 'object') {
@@ -245,7 +246,7 @@ class MessyPlaylist {
         } else {
             this.list.addEventListener('click', this.onClick.bind(this));
         }
-        this.testSound();
+        //this.testSound();
         window.addEventListener('message', this.postMessagesResponse.bind(this));
     }
     
@@ -262,12 +263,13 @@ class MessyPlaylist {
     testSound() { // https://stackoverflow.com/a/16573282
         // one context per document
         var context = new (window.AudioContext || window.webkitAudioContext)();
-        var osc = context.createOscillator(); // instantiate an oscillator
-        osc.type = 'sine'; // this is the default - also square, sawtooth, triangle
-        osc.frequency.value = 20000; // Hz
-        osc.connect(context.destination); // connect it to the destination
-        osc.start(); // start the oscillator
-        osc.stop(context.currentTime + 0.1); // stop 0.1 seconds after the current time
+        context._osc = context.createOscillator(); // instantiate an oscillator
+        context._osc.type = 'sine'; // this is the default - also square, sawtooth, triangle
+        context._osc.frequency.value = 20000; // Hz
+        context._osc.connect(context.destination); // connect it to the destination
+        context._osc.start(); // start the oscillator
+        context._osc.stop(context.currentTime + 0.1); // stop 0.1 seconds after the current time
+        return context;
     }
     
     postMessagesResponse(event) {
@@ -409,6 +411,9 @@ class MessyPlaylist {
     }
     
     onClick(event) {
+        if (!this.soundTested) {
+            this.soundTested = this.testSound();
+        }
         if (event.target.classList.contains('playlist-item')) {
             this.play(event.target, event);
         }
