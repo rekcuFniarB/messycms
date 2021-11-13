@@ -274,6 +274,8 @@ MessyCMS = function() {
                     }
                 }
             });
+            
+            window.history.replaceState({url: document.location.href, title: document.title}, document.title);
         }
         return container;
     };
