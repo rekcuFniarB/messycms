@@ -12,14 +12,27 @@
 }
 .media-embed {
     padding: 5px;
+    /* aspect ratio */
     padding-bottom: 56.25%;
 }
 .media-embed[href*="soundcloud.com"],
 .media-embed[data-href*="soundcloud.com"] {
     padding-bottom: 15%;
 }
+.media-embed[data-embed-frame-src*="/size=large/tracklist=false/artwork=small/"] {
+    padding-bottom: 5px;
+    height: 120px;
+}
+.media-embed[data-embed-frame-src*="/EmbeddedPlayer/track="][data-embed-frame-src*="/size=small/"] {
+    padding-bottom: 5px;
+    height: 42px;
+}
 .messy-modal .media-embed {
     width: 780px;
+}
+.media-embed iframe {
+    width: 100%;
+    height: 100%;
 }
 .embed-play-icon {
     width: 0;

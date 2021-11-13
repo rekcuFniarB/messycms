@@ -23,7 +23,15 @@ function MediaEmbedded(link) {
                 oEmbedUrl._search = new URLSearchParams(oEmbedUrl.search);
                 oEmbedUrl._search.set('url', this.link.href);
                 oEmbedUrl.search = oEmbedUrl._search.toString();
-            } else {
+            }
+            else if (!!this.link.dataset.oembedUrl) {
+                oEmbedUrl.href = this.link.dataset.oembedUrl;
+                oEmbedUrl.search = new URLSearchParams({
+                    url: this.link.href,
+                    format: 'json',
+                }).toString();
+            }
+            else {
                 // Fallback to link url
                 oEmbedUrl.href = this.link.href;
                 oEmbedUrl.pathname = '/oembed';
@@ -126,16 +134,16 @@ function MediaEmbedded(link) {
                 frameSrc.searchParams.set('show_reposts', 'false');
             }
             frameSrc.search = frameSrc.searchParams.toString();
-            this.frame.src = frameSrc.href;
+            this.frame.src = this.link.dataset.embedFrameSrc = frameSrc.href;
             frameHost = frameSrc.hostname.split('.').reverse();
             documentHost = document.location.hostname.split('.').reverse();
             if (documentHost[0] === frameHost[0] && documentHost[1] === frameHost[1]) {
                 this.frame.referrerPolicy = 'origin';
             }
-            this.frame.width = '';
-            this.frame.height = '';
-            this.frame.style.width = '100%';
-            this.frame.style.height = '100%';
+            //this.frame.width = '';
+            //this.frame.height = '';
+            //this.frame.style.width = '100%';
+            //this.frame.style.height = '100%';
             var sizeUpd = false;
             if (!!this.data.embedWidth) {
                 this.link.style.width = this.data.embedWidth;
