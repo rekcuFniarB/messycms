@@ -247,6 +247,28 @@ class MessyPlaylist {
                         cbId: 'ended',
                         args: ['player:video:ended']
                     }), '*');
+                    // Subscribing to timeupdate events
+                    this.current.frame.contentWindow.postMessage(JSON.stringify({
+                        f: 'bind',
+                        cbId: 'timeupdate',
+                        args: ['player:video:timeupdate']
+                    }), '*');
+                }
+                else if (event.data.indexOf('"cbId":"timeupdate"') > -1) {
+                    // timeupdate event from 23video
+                    this.current.frame.contentWindow.postMessage(JSON.stringify({
+                        f: 'get',
+                        cbId: 'getCurrentTime',
+                        args: ['currentTime']
+                    }), '*');
+                    this.current.frame.contentWindow.postMessage(JSON.stringify({
+                        f: 'get',
+                        cbId: 'getDuration',
+                        args: ['duration']
+                    }), '*');
+                }
+                else if (event.data.indexOf('"cbId":"getCurrentTime"') > -1 || event.data.indexOf('"cbId":"getDuration"') > -1) {
+                    this.onPlaybackProgress(JSON.parse(event.data));
                 }
                 else if (event.data.indexOf('"method":"ready"') > -1) {
                     // Soundcloud ready
@@ -319,6 +341,16 @@ class MessyPlaylist {
                 // relativePosition is 0.x values
                 event.data.duration = event.data.currentTime / event.value.relativePosition;
             }
+            else if (!!event.cbId) {
+                // 23video
+                if (event.cbId == 'getDuration' && !this.current.frame.dataset.duration) {
+                    this.current.frame.dataset.duration = event.a
+                }
+                else if (event.cbId == 'getCurrentTime') {
+                    event.data.currentTime = event.a;
+                    event.data.duration = this.current.frame.dataset.duration;
+                }
+            }
             if (!!this.current.frame.progressBarCurrent) {
                 if (event.data.duration && event.data.currentTime) {
                     var width = (event.data.currentTime * 100) / event.data.duration;
@@ -362,6 +394,12 @@ class MessyPlaylist {
             this.current.frame.contentWindow.postMessage(JSON.stringify(
                 {method: 'seekTo', value: gotoTime * 1000}
             ), '*');
+            // 23video
+            this.current.frame.contentWindow.postMessage(JSON.stringify({
+                f: 'set',
+                cbId: 'setCurrentTime',
+                args: ['currentTime', gotoTime]
+            }), '*');
         }
     }
     
