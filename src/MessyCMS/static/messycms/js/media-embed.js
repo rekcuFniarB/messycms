@@ -155,6 +155,9 @@ function MediaEmbedded(link) {
             this._resolveFrame(this.frame);
             this.link.append(this.frame);
             //this.link.style.pointerEvents = 'none';
+            if (!this.link.dataset.href) {
+                this.link.dataset.href = this.link.href;
+            }
             this.link.removeAttribute('href');
         } else {
             let div = document.createElement('div');

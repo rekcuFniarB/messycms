@@ -14,7 +14,8 @@
     padding: 5px;
     padding-bottom: 56.25%;
 }
-.media-embed[href*="soundcloud.com"] {
+.media-embed[href*="soundcloud.com"],
+.media-embed[data-href*="soundcloud.com"] {
     padding-bottom: 15%;
 }
 .messy-modal .media-embed {
