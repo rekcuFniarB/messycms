@@ -239,46 +239,67 @@ class MessyPlaylist {
         this.log('MESSAGE', event.data, event.origin);
         if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow) {
             if (typeof event.data === 'string') {
-                if (event.origin.indexOf('23video.com') > -1 && event.data === '{"ready":true}') {
-                    // 23video ready, start playback
-                    // Source: https://github.com/23/GlueFrame
-                    this.current.frame.ready.then(event => {
+                if (event.origin.indexOf('23video.com') > -1) {
+                    if (event.data.indexOf('"context":"player.js"') > -1 && event.data.indexOf('"event":"ready"') > -1) {
+                        // 23video ready, start playback
+                        // Source: https://github.com/23/GlueFrame
+                        //this.current.frame.ready.then(event => {
+                            // Start playback
+                            this.current.frame.contentWindow.postMessage(JSON.stringify({
+                                f: 'set',
+                                cbId: 'playing',
+                                args: ['playing', true]
+                            }), '*');
+                        //});
+                    }
+                    else if (event.data.indexOf('"cbId":"playing"') > -1) {
                         // They have a bug, "ready" message sent before frame load complete
                         // and playback doesn't start in this case.
                         this.current.frame.contentWindow.postMessage(JSON.stringify({
                             f: 'set',
-                            cbId: 'playing',
+                            cbId: 'retryplaying',
                             args: ['playing', true]
                         }), '*');
-                    });
-                    // Subscribing to playback end event
-                    this.current.frame.contentWindow.postMessage(JSON.stringify({
-                        f: 'bind',
-                        cbId: 'ended',
-                        args: ['player:video:ended']
-                    }), '*');
-                    // Subscribing to timeupdate events
-                    this.current.frame.contentWindow.postMessage(JSON.stringify({
-                        f: 'bind',
-                        cbId: 'timeupdate',
-                        args: ['player:video:timeupdate']
-                    }), '*');
-                }
-                else if (event.data.indexOf('"cbId":"timeupdate"') > -1) {
-                    // timeupdate event from 23video
-                    this.current.frame.contentWindow.postMessage(JSON.stringify({
-                        f: 'get',
-                        cbId: 'getCurrentTime',
-                        args: ['currentTime']
-                    }), '*');
-                    this.current.frame.contentWindow.postMessage(JSON.stringify({
-                        f: 'get',
-                        cbId: 'getDuration',
-                        args: ['duration']
-                    }), '*');
-                }
-                else if (event.data.indexOf('"cbId":"getCurrentTime"') > -1 || event.data.indexOf('"cbId":"getDuration"') > -1) {
-                    this.onPlaybackProgress(JSON.parse(event.data));
+                        setTimeout(() => {
+                            this.current.frame.contentWindow.postMessage(JSON.stringify({
+                                f: 'set',
+                                cbId: 'retryplaying',
+                                args: ['playing', true]
+                            }), '*');
+                        }, 500);
+                        // Subscribing to playback end event
+                        this.current.frame.contentWindow.postMessage(JSON.stringify({
+                            f: 'bind',
+                            cbId: 'ended',
+                            args: ['player:video:ended']
+                        }), '*');
+                        // Subscribing to timeupdate events
+                        this.current.frame.contentWindow.postMessage(JSON.stringify({
+                            f: 'bind',
+                            cbId: 'timeupdate',
+                            args: ['player:video:timeupdate']
+                        }), '*');
+                    }
+                    else if (event.data.indexOf('"cbId":"timeupdate"') > -1) {
+                        // timeupdate event from 23video
+                        this.current.frame.contentWindow.postMessage(JSON.stringify({
+                            f: 'get',
+                            cbId: 'getCurrentTime',
+                            args: ['currentTime']
+                        }), '*');
+                        this.current.frame.contentWindow.postMessage(JSON.stringify({
+                            f: 'get',
+                            cbId: 'getDuration',
+                            args: ['duration']
+                        }), '*');
+                    }
+                    else if (event.data.indexOf('"cbId":"getCurrentTime"') > -1 || event.data.indexOf('"cbId":"getDuration"') > -1) {
+                        this.onPlaybackProgress(JSON.parse(event.data));
+                    }
+                    else if (event.data.indexOf('player:video:ended') > -1) {
+                        // 23video ended
+                        this.play(this.next().value);
+                    }
                 }
                 else if (event.data.indexOf('"method":"ready"') > -1) {
                     // Soundcloud ready
@@ -294,10 +315,6 @@ class MessyPlaylist {
                 }
                 else if (event.data.indexOf('"method":"finish"') > -1) {
                     // SC playback finished
-                    this.play(this.next().value);
-                }
-                else if (event.data.indexOf('player:video:ended') > -1) {
-                    // 23video ended
                     this.play(this.next().value);
                 }
                 else if (event.data == 'playerinited') {
