@@ -239,8 +239,12 @@ class MessyPlaylist {
                     }
                 }
                 this.embedPlace.innerHTML = '';
-                this.embedPlace.append(media);
-                this.classList.add('active');
+                if (!!media) {
+                    this.embedPlace.append(media);
+                    this.classList.add('active');
+                } else {
+                    this.classList.remove('active');
+                }
             }.bind(this.container);
             this.container.addEventListener('click', this.onClick.bind(this));
         }
@@ -545,10 +549,20 @@ class MessyPlaylist {
         // Reset progressbar
         //this.onPlaybackProgress({data: {duration: 0, currentTime: 0}});
         
+        if (!!this.list) {
+            for (let listItem of this.list.querySelectorAll('li')) {
+                if (listItem.contains(item)) {
+                    listItem.classList.add('active');
+                } else {
+                    listItem.classList.remove('active');
+                }
+            }
+        }
+        
         if (!item) {
             // End of playlist?
             if (!!this.container) {
-                this.container.classList.remove('active');
+                this.container.embed(false);
                 return false;
             }
         }
