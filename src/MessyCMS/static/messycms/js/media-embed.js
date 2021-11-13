@@ -181,6 +181,19 @@ class MessyPlaylist {
         this[Symbol.iterator] = function() { return this; };
         if (typeof this.container !== 'object') {
             console.error('WARNING: no container supplied to constructor');
+        } else {
+            this.container.embed = function(media) {
+                if (!this.embedPlace) {
+                    this.embedPlace = this.querySelector('.embed-place');
+                    if (!this.embedPlace) {
+                        this.embedPlace = this;
+                    }
+                }
+                this.embedPlace.innerHTML = '';
+                this.embedPlace.append(media);
+                this.classList.add('active');
+            }.bind(this.container);
+            this.container.addEventListener('click', this.onClick.bind(this));
         }
         if (typeof this.list !== 'object') {
             console.error('ERROR: no playlist element supplied to constructor');
@@ -253,6 +266,12 @@ class MessyPlaylist {
         if (event.target.classList.contains('playlist-item')) {
             this.play(event.target, event);
         }
+        else if (event.target.classList.contains('btn-playlist-prev')) {
+            this.play(this.prev().value);
+        }
+        else if (event.target.classList.contains('btn-playlist-next')) {
+            this.play(this.next().value);
+        }
     }
     
     play(item, event) {
@@ -272,9 +291,7 @@ class MessyPlaylist {
             if (!!event) {
                 event.preventDefault();
             }
-            this.container.innerHTML = '';
-            this.container.append(embedMedia);
-            this.container.classList.add('active');
+            this.container.embed(embedMedia);
             embedMedia.embed = new MediaEmbedded(embedMedia);
             embedMedia.embed.ready.then((embed) => {
                 this.current.frame = embed.embedFrame().frame;
@@ -318,6 +335,34 @@ class MessyPlaylist {
                     // Reached the end
                     result.done = true;
                     this.current = result.value = null;
+                }
+                result.curIndex = curIndex;
+            }
+        } else {
+            result.done = true;
+            this.current = result.value = null;
+        }
+        return result;
+    }
+    
+    prev() {
+        var items = [...this.list.querySelectorAll('.playlist-item')];
+        var result = {done: true, value: this.current};
+        if (items.length > 0) {
+            if (!this.current) {
+                // Beginning
+                this.current = result.value = items[0];
+                result.done = false;
+            } else {
+                var curIndex = items.indexOf(this.current) - 1;
+                if (curIndex > -1) {
+                    // Can get next next
+                    this.current = result.value = items[curIndex];
+                    result.done = false;
+                } else {
+                    // Reached beginning, go to last item
+                    result.done = false;
+                    this.current = result.value = items[items.length - 1];
                 }
                 result.curIndex = curIndex;
             }
