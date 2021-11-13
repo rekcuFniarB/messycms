@@ -167,7 +167,8 @@ function MediaEmbedded(link) {
             this.frame.setAttribute('allow', 'fullscreen; autoplay');
             this._resolveFrame(this.frame);
             this.link.append(this.frame);
-            this.link.style.pointerEvents = 'none';
+            // Don't use this, oterwise frame will be unclickable
+            //this.link.style.pointerEvents = 'none';
             if (!this.link.dataset.href) {
                 this.link.dataset.href = this.link.href;
             }
