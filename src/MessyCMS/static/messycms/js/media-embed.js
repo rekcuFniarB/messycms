@@ -229,7 +229,26 @@ class MessyPlaylist {
         this.log('MESSAGE', event.data, event.origin);
         if (!!this.current.frame && !!this.current.frame.contentWindow) {
             if (typeof event.data === 'string') {
-                if (event.data.indexOf('"method":"ready"') > -1) {
+                if (event.origin.indexOf('23video.com') > -1 && event.data === '{"ready":true}') {
+                    // 23video ready, start playback
+                    // Source: https://github.com/23/GlueFrame
+                    this.current.frame.ready.then(event => {
+                        // They have a bug, "ready" message sent before frame load complete
+                        // and playback doesn't start in this case.
+                        this.current.frame.contentWindow.postMessage(JSON.stringify({
+                            f: 'set',
+                            cbId: 'playing',
+                            args: ['playing', true]
+                        }), '*');
+                    });
+                    // Subscribing to playback end event
+                    this.current.frame.contentWindow.postMessage(JSON.stringify({
+                        f: 'bind',
+                        cbId: 'ended',
+                        args: ['player:video:ended']
+                    }), '*');
+                }
+                else if (event.data.indexOf('"method":"ready"') > -1) {
                     // Soundcloud ready
                     this.current.frame.contentWindow.postMessage(JSON.stringify(
                         {method: 'addEventListener', value: 'finish'}
@@ -295,24 +314,6 @@ class MessyPlaylist {
             embedMedia.embed = new MediaEmbedded(embedMedia);
             embedMedia.embed.ready.then((embed) => {
                 this.current.frame = embed.embedFrame().frame;
-                var frameSrc = document.createElement('a');
-                frameSrc.href = this.current.frame.src;
-                if (frameSrc.hostname.indexOf('23video.com') > -1) {
-                    // Source: https://github.com/23/GlueFrame
-                    this.current.frame.ready.then(event => {
-                        this.current.frame.contentWindow.postMessage(JSON.stringify({
-                            f: 'set',
-                            cbId: 'playing',
-                            args: ['playing', true]
-                        }), '*');
-                        // Subscribing to playback end event
-                        this.current.frame.contentWindow.postMessage(JSON.stringify({
-                            f: 'bind',
-                            cbId: 'ended',
-                            args: ['player:video:ended']
-                        }), '*');
-                    });
-                }
             });
         }
     }
