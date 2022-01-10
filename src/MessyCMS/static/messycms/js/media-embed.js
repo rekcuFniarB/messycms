@@ -112,6 +112,10 @@ function MediaEmbedded(link) {
     this.embedFrame = function(event) {
         if (!!event) {
             event.preventDefault();
+            if (typeof this.frame === 'object') {
+                // Already embedded.
+                return this;
+            }
         }
         var div = document.createElement('div');
         div.innerHTML = this.data.html;
@@ -154,8 +158,11 @@ function MediaEmbedded(link) {
                 this.link.style.paddingBottom = 0;
                 sizeUpd = true;
             }
-            if (!!this.link.playIcon && sizeUpd) {
-                this.link.playIcon.centerHorizontally().centerVertically();
+            //if (!!this.link.playIcon && sizeUpd) {
+            //    this.link.playIcon.centerHorizontally().centerVertically();
+            //}
+            if (!!this.link.playIcon) {
+                this.link.playIcon.style.display = 'none';
             }
             this.link.style.position = 'relative';
             this.frame.style.position = 'absolute';
