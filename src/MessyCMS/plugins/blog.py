@@ -1,11 +1,12 @@
 from MessyCMS import plugins
 from MessyCMS.models import Node
+import math
 
 ## Items list with cursor type pagination (like on Reddit)
 
 class ItemslistCursorPaginated(plugins.ItemsList):
     def execute(self, node, request=None, *args, **kwargs):
-        result = result = {
+        result = {
             'templates': plugins.templates(node, request),
             'context': {
                 'nodes': None,
@@ -13,6 +14,7 @@ class ItemslistCursorPaginated(plugins.ItemsList):
                 'next_page': None,
                 'prev_page': None,
                 'last_page': None,
+                'first_page': None
             }
         }
         
@@ -42,9 +44,12 @@ class ItemslistCursorPaginated(plugins.ItemsList):
             
             current_node = Node.objects.filter(id=node_id).first()
             if current_node:
+                ## Current node plus slice of nodes older than selected node
                 sliced = sliced.filter(ts_created__lte=current_node.ts_created)
             
+            ## Nodes for current page + first node of next page
             sliced = sliced[:limit + 1]
+            ## Current page nodes only
             result['context']['nodes'] = sliced[:limit]
             
             ## There is next page
@@ -54,14 +59,21 @@ class ItemslistCursorPaginated(plugins.ItemsList):
                 ## "Cannot reverse a query once a slice has been taken".
                 result['context']['next_page'] = sliced[limit]
                 
-                ## Get last page
-                result['context']['last_page'] = items[items.count() - limit:][0]
+                ## Get last page link
+                result['context']['last_page'] = items[ math.ceil(items.count() / limit) * limit - limit : ][0]
+                
+                if result['context']['last_page'].id == result['context']['next_page'].id:
+                    # Not showing next page link if next is last page.
+                    result['context']['next_page'] = None
             
             ## Checkout if there is prev page
             if current_node:
                 sliced = items.filter(ts_created__gt=current_node.ts_created)
                 if sliced:
-                    result['context']['prev_page'] = sliced[sliced.count() - limit:][0]
+                    if sliced.count() > limit:
+                        result['context']['prev_page'] = sliced[sliced.count() - limit:][0]
+                    
+                    result['context']['first_page'] = True
         
         node.context.update(result['context'])
         return result
