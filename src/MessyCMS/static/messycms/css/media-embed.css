@@ -80,7 +80,7 @@
     font-family: "Ionicons";
     margin-right: 0.2em;
 }
-.messy-playlist li.active:before
+.messy-playlist li.active:before,
 .playlist li.active:before {
     content: '\f488';
 }
