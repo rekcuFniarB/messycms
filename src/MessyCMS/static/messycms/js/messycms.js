@@ -229,6 +229,16 @@ MessyCMS = function() {
                     if (!!metadata.title) {
                         document.title = metadata.title;
                     }
+                    for (let script of this.querySelectorAll('script')) {
+                        // Executing new scripts
+                        if (!script.type || script.type.toLowerCase() == 'text/javascript') {
+                            if (!!script.src) {
+                                This.requireScript(script.src);
+                            } else {
+                                eval.apply(window, [script.innerText]);
+                            }
+                        }
+                    }
                     if (pushState) {
                         window.history.pushState({url: url, title: document.title}, document.title, url);
                     }
