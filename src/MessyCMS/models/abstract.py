@@ -227,7 +227,7 @@ class MessyBase(MPTTModel):
     
     def append_to(self):
         '''
-        If this node is for appending to particular HTML element, return than HTML element name
+        If this node is for appending to particular HTML element, return that HTML element name
         '''
         append_to = ''
         stripped_slug = self.slug.strip('.')

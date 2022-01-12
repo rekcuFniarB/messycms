@@ -31,7 +31,12 @@ class ItemslistCursorPaginated(plugins.ItemsList):
         if type(prop_filter) is dict:
             items = items.filter(**prop_filter)
         
-        items = items.order_by('-ts_created', '-id')
+        prop_order = node.prop('order', ['-ts_created', '-id'])
+        if type(prop_order) is str:
+            prop_order = [prop_order]
+        
+        items = items.order_by(*prop_order)
+        
         limit = int(node.prop('limit', 10))
         
         if limit:
@@ -44,8 +49,16 @@ class ItemslistCursorPaginated(plugins.ItemsList):
             
             current_node = Node.objects.filter(id=node_id).first()
             if current_node:
+                filter_kwargs = {}
+                for _ in prop_order:
+                    k = _.strip('-')
+                    if _.startswith('-'):
+                        filter_kwargs[f'{k}__lte'] = getattr(current_node, k)
+                    else:
+                        filter_kwargs[f'{k}__gte'] = getattr(current_node, k)
                 ## Current node plus slice of nodes older than selected node
-                sliced = sliced.filter(ts_created__lte=current_node.ts_created)
+                #sliced = sliced.filter(ts_created__lte=current_node.ts_created)
+                sliced = sliced.filter(**filter_kwargs)
             
             ## Nodes for current page + first node of next page
             sliced = sliced[:limit + 1]
@@ -68,7 +81,15 @@ class ItemslistCursorPaginated(plugins.ItemsList):
             
             ## Checkout if there is prev page
             if current_node:
-                sliced = items.filter(ts_created__gt=current_node.ts_created)
+                filter_kwargs = {}
+                for _ in prop_order:
+                    k = _.strip('-')
+                    if _.startswith('-'):
+                        filter_kwargs[f'{k}__gt'] = getattr(current_node, k)
+                    else:
+                        filter_kwargs[f'{k}__lt'] = getattr(current_node, k)
+                #sliced = items.filter(ts_created__gt=current_node.ts_created)
+                sliced = items.filter(**filter_kwargs)
                 if sliced:
                     if sliced.count() > limit:
                         result['context']['prev_page'] = sliced[sliced.count() - limit:][0]
