@@ -62,8 +62,14 @@ class PluggableExternalAppsWrapper:
         if request.resolver_match:
             ## settings.MESSYCMS_WRAP_ROUTES is list of routes templates like 'user/<id>/'
             for route in getattr(settings, 'MESSYCMS_WRAP_ROUTES', []):
-                if request.resolver_match.route.lstrip('/ ').startswith(route.strip('/ ')):
-                    skip = False
+                if route.startswith('/'):
+                    if request.resolver_match.route.lstrip('/ ').startswith(route.strip('/ ')):
+                        skip = False
+                        break
+                else:
+                    if request.resolver_match.route.rstrip('/ ').endswith(route.strip('/ ')):
+                        skip = False
+                        break
             
             if request.resolver_match.app_name == 'admin':
                 skip = True
