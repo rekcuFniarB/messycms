@@ -271,7 +271,7 @@ MessyCMS = function() {
                     if (typeof eventTarget.dataset.noAjax !== 'undefined') return;
                     if (event.ctrlKey || event.altKey || event.shiftKey) return;
                     if (eventTarget.host != document.location.host) return;
-                    if (eventTarget.href && eventTarget.href.indexOf('#') === 0) return;
+                    if (!!eventTarget.href && eventTarget.getAttribute('href').indexOf('#') === 0) return;
                     if (eventTarget.protocol.indexOf('http') !== 0) return;
                     event.preventDefault();
                     container.loadContent(eventTarget.href);
