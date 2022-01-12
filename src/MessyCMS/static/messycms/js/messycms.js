@@ -265,14 +265,16 @@ MessyCMS = function() {
             }.bind(container);
             
             document.body.addToEventHandlers('click.ajax.mode', (event) => {
-                if (event.target.nodeName == 'A') {
-                    if (typeof event.target.dataset.noAjax !== 'undefined') return;
+                // Ensure target is a link.
+                var eventTarget = event.target.closest('a');
+                if (!!eventTarget) {
+                    if (typeof eventTarget.dataset.noAjax !== 'undefined') return;
                     if (event.ctrlKey || event.altKey || event.shiftKey) return;
-                    if (event.target.host != document.location.host) return;
-                    if (event.target.href && event.target.href.indexOf('#') === 0) return;
-                    if (event.target.protocol.indexOf('http') !== 0) return;
+                    if (eventTarget.host != document.location.host) return;
+                    if (eventTarget.href && eventTarget.href.indexOf('#') === 0) return;
+                    if (eventTarget.protocol.indexOf('http') !== 0) return;
                     event.preventDefault();
-                    container.loadContent(event.target.href);
+                    container.loadContent(eventTarget.href);
                 }
                 // Add other handlers here);
             });
