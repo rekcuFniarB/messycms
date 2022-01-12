@@ -559,12 +559,22 @@ class MessyPlaylist {
     }
     
     setCurrentTime(event) {
-        var eRectangle = event.target.getBoundingClientRect();
-        var eWidth = event.clientX - eRectangle.left;
-        // Calculating relative offset
-        var ratio = eWidth / event.target.offsetWidth;
+        var gotoTime;
+        
         if (!!this.current && !!this.current.frame && !!this.current.frame.contentWindow && !!this.current.frame.dataset.duration) {
-            var gotoTime = this.current.frame.dataset.duration * ratio;
+            if (!!event && !!event.target) {
+                var eRectangle = event.target.getBoundingClientRect();
+                var eWidth = event.clientX - eRectangle.left;
+                // Calculating relative offset
+                var ratio = eWidth / event.target.offsetWidth;
+                gotoTime = this.current.frame.dataset.duration * ratio;
+            }
+            else if (!!event && !!event.seekTo) {
+                gotoTime = event.seekTo;
+            }
+            else {
+                return false;
+            }
             
             if (this.current.frame.src.indexOf('soundcloud') > -1) {
                 // SC (expects in ms)
