@@ -2,114 +2,134 @@
  * MessyCMS  https://github.com/rekcuFniarB/messycms#readme
  * License:  MIT
  */
-function MediaEmbedded(link) {
-    var This = this;
-    this.link = link;
-    this.oEmbedApis = {
-        'vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json',
-        'player.vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&api=true&format=json'
-    };
-    var readyPromise = {};
-    this.ready = new Promise((resolve, reject) => {
-        readyPromise.resolve = resolve;
-        readyPromise.reject = reject;
-    });
+class MessyMediaEmbed {
+    _promise;
     
-    this.getOEmbed = function() {
-        if (!this.data) {
-            var oEmbedUrl = document.createElement('a');
-            if (typeof this.oEmbedApis[this.link.hostname] !== 'undefined') {
-                oEmbedUrl.href = this.oEmbedApis[this.link.hostname];
-                oEmbedUrl._search = new URLSearchParams(oEmbedUrl.search);
-                oEmbedUrl._search.set('url', this.link.href);
-                oEmbedUrl.search = oEmbedUrl._search.toString();
-            }
-            else if (!!this.link.dataset.oembedUrl) {
-                oEmbedUrl.href = this.link.dataset.oembedUrl;
-                oEmbedUrl.search = new URLSearchParams({
-                    url: this.link.href,
-                    format: 'json',
-                }).toString();
-            }
-            else {
-                // Fallback to link url
-                oEmbedUrl.href = this.link.href;
-                oEmbedUrl.pathname = '/oembed';
-                oEmbedUrl.search = new URLSearchParams({
-                    url: this.link.href,
-                    format: 'json',
-                }).toString();
-            }
-            if (oEmbedUrl.hostname == 'youtu.be') oEmbedUrl.hostname = 'www.youtube.com';
-            
-            this.data = {html: ''};
-            Object.assign(this.data, this.link.dataset);
-            
-            function embedDataReady(data) {
-                if (!!data.html) {
-                    this.link.addEventListener('click', (event) => {
-                        this.embedFrame(event).tryToPlay(null, 'click');
-                    }, {once: true});
-                }
-                if (!!data.thumbnail_url) {
-                    this.link.style.backgroundImage = `url(${data.thumbnail_url})`;
-                    this.link.style.backgroundRepeat = 'no-repeat';
-                    this.link.style.backgroundSize = '100%';
-                    this.link.style.backgroundPosition = 'center';
-                    this.link.style.backgroundSize = 'cover';
-                }
-                if (!!data.title) {
-                    this.link.setAttribute('title', data.title);
-                }
-                readyPromise.resolve(this);
-            }
-            
-            if (!!this.link.dataset.embedFrameSrc) {
-                // If predefined frame url
-                this.data.html = `<iframe src="${this.link.dataset.embedFrameSrc}" allow="autoplay; fullscreen"></iframe>`;
-                
-                if (!!this.link.dataset.embedThumbnail) {
-                    this.data.thumbnail_url = this.link.dataset.embedThumbnail;
-                }
-                embedDataReady.bind(this)(this.data);
-            }
-            else if (!!this.link.dataset.embedTemplate) {
-                let embedTemplate = document.getElementById(this.link.dataset.embedTemplate);
-                if (!!embedTemplate) {
-                    this.data.html = embedTemplate.innerHTML;
-                    this.data.embedTemplate = embedTemplate;
-                }
-                if (!!this.link.dataset.embedThumbnail) {
-                    this.data.thumbnail_url = this.link.dataset.embedThumbnail;
-                }
-                embedDataReady.bind(this)(this.data);
-            }
-            else {
-                fetch(oEmbedUrl.href)
-                    .then((response) => {return response.json()})
-                    .then((data) => {
-                        this.data = data;
+    constructor(link) {
+        this.link = link;
+        this.oEmbedApis = {
+            'vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&format=json',
+            'player.vimeo.com': 'https://vimeo.com/api/oembed.json?autoplay=true&api=true&format=json'
+        };
+        this.then();
+    }
+    
+    catch(...args) {
+        return this._promise.catch(...args);
+    }
+    
+    finally(...args) {
+        return this._promise.finally(...args);
+    }
+    
+    then(resolve) {
+        if (!this._promise) {
+            this._promise = new Promise((embedResolve, embedReject) => {
+                if (!this.data) {
+                    var oEmbedUrl = document.createElement('a');
+                    if (typeof this.oEmbedApis[this.link.hostname] !== 'undefined') {
+                        oEmbedUrl.href = this.oEmbedApis[this.link.hostname];
+                        oEmbedUrl._search = new URLSearchParams(oEmbedUrl.search);
+                        oEmbedUrl._search.set('url', this.link.href);
+                        oEmbedUrl.search = oEmbedUrl._search.toString();
+                    }
+                    else if (!!this.link.dataset.oembedUrl) {
+                        oEmbedUrl.href = this.link.dataset.oembedUrl;
+                        oEmbedUrl.search = new URLSearchParams({
+                            url: this.link.href,
+                            format: 'json',
+                        }).toString();
+                    }
+                    else {
+                        // Fallback to link url
+                        oEmbedUrl.href = this.link.href;
+                        oEmbedUrl.pathname = '/oembed';
+                        oEmbedUrl.search = new URLSearchParams({
+                            url: this.link.href,
+                            format: 'json',
+                        }).toString();
+                    }
+                    if (oEmbedUrl.hostname == 'youtu.be') oEmbedUrl.hostname = 'www.youtube.com';
+                    
+                    this.data = {html: ''};
+                    Object.assign(this.data, this.link.dataset);
+                    
+                    function embedDataReady(data) {
+                        if (!!data.html) {
+                            this.link.addEventListener('click', (event) => {
+                                this.embedFrame(event).tryToPlay(null, 'click');
+                            }, {once: true});
+                        }
+                        if (!!data.thumbnail_url) {
+                            this.link.style.backgroundImage = `url(${data.thumbnail_url})`;
+                            this.link.style.backgroundRepeat = 'no-repeat';
+                            this.link.style.backgroundSize = '100%';
+                            this.link.style.backgroundPosition = 'center';
+                            this.link.style.backgroundSize = 'cover';
+                        }
+                        if (!!data.title) {
+                            this.link.setAttribute('title', data.title);
+                        }
+                        embedResolve();
+                    }
+                    
+                    if (!!this.link.dataset.embedFrameSrc) {
+                        // If predefined frame url
+                        this.data.html = `<iframe src="${this.link.dataset.embedFrameSrc}" allow="autoplay; fullscreen"></iframe>`;
+                        
+                        if (!!this.link.dataset.embedThumbnail) {
+                            this.data.thumbnail_url = this.link.dataset.embedThumbnail;
+                        }
                         embedDataReady.bind(this)(this.data);
-                    })
-                    .catch((error) => {
-                        console.error(`Request error for oEmbed URL ${oEmbedUrl.href}:`, error);
-                        readyPromise.reject(error);
-                    });
-            }
-            
-            if (!this.link.dataset.embedNoPlayIcon) {
-                this.link.playIcon = document.createElement('div');
-                this.link.playIcon.classList.add('embed-play-icon');
-                this.link.append(this.link.playIcon);
-                this.link.style.position = 'relative';
-                this.link.playIcon.style.position = 'absolute';
-                this.link.playIcon.centerVertically().centerHorizontally();
-            }
+                    }
+                    else if (!!this.link.dataset.embedTemplate) {
+                        let embedTemplate = document.getElementById(this.link.dataset.embedTemplate);
+                        if (!!embedTemplate) {
+                            this.data.html = embedTemplate.innerHTML;
+                            this.data.embedTemplate = embedTemplate;
+                        }
+                        if (!!this.link.dataset.embedThumbnail) {
+                            this.data.thumbnail_url = this.link.dataset.embedThumbnail;
+                        }
+                        embedDataReady.bind(this)(this.data);
+                    }
+                    else {
+                        fetch(oEmbedUrl.href)
+                            .then((response) => {return response.json()})
+                            .then((data) => {
+                                this.data = data;
+                                embedDataReady.bind(this)(this.data);
+                            })
+                            .catch((error) => {
+                                console.error(`Request error for oEmbed URL ${oEmbedUrl.href}:`, error);
+                                embedReject(error);
+                            });
+                    }
+                    
+                    if (!this.link.dataset.embedNoPlayIcon) {
+                        this.link.playIcon = document.createElement('div');
+                        this.link.playIcon.classList.add('embed-play-icon');
+                        this.link.append(this.link.playIcon);
+                        this.link.style.position = 'relative';
+                        this.link.playIcon.style.position = 'absolute';
+                        this.link.playIcon.centerVertically().centerHorizontally();
+                    }
+                } else {
+                    // Normally we shouldn't get here
+                    embedResolve();
+                }
+            });
         }
-        return this;
-    }.bind(this);
+        return this._promise.then(result => {
+            if (typeof resolve === 'function') {
+                return resolve(this);
+            } else {
+                return result;
+            }
+        });
+    }
     
-    this.embedFrame = function(event) {
+    embedFrame(event) {
         if (!!event) {
             event.preventDefault();
             if (typeof this.frame === 'object') {
@@ -141,8 +161,8 @@ function MediaEmbedded(link) {
             }
             frameSrc.search = frameSrc.searchParams.toString();
             this.frame.src = this.link.dataset.embedFrameSrc = frameSrc.href;
-            frameHost = frameSrc.hostname.split('.').reverse();
-            documentHost = document.location.hostname.split('.').reverse();
+            var frameHost = frameSrc.hostname.split('.').reverse();
+            var documentHost = document.location.hostname.split('.').reverse();
             if (documentHost[0] === frameHost[0] && documentHost[1] === frameHost[1]) {
                 this.frame.referrerPolicy = 'origin';
             }
@@ -174,9 +194,9 @@ function MediaEmbedded(link) {
             this.frame.setAttribute('loading', 'lazy');
             this.frame.setAttribute('allowfullscreen', true);
             this.frame.setAttribute('allow', 'fullscreen; autoplay');
-            this._resolveFrame(this.frame);
+            this._makeOnLoadPromise(this.frame);
             this.link.append(this.frame);
-            // Don't use this, oterwise frame will be unclickable
+            // Don't use it, oterwise frame will be unclickable
             //this.link.style.pointerEvents = 'none';
             if (!this.link.dataset.href) {
                 this.link.dataset.href = this.link.href;
@@ -187,14 +207,14 @@ function MediaEmbedded(link) {
             div.innerHTML = this.data.html;
             this.frame = div.querySelector('iframe');
             if (!!this.frame) {
-                this._resolveFrame(this.frame);
+                this._makeOnLoadPromise(this.frame);
             }
             this.link.parentElement.replaceChild(div, this.link);
         }
         return this;
-    }.bind(this);
+    } // embedFrame()
     
-    this.tryToPlay = function (times, source) {
+    tryToPlay(times, source) {
         if (typeof times === 'undefined') {
             times = -1
         }
@@ -220,25 +240,27 @@ function MediaEmbedded(link) {
             ), '*');
             setTimeout(() => { this.tryToPlay(times, 'setTimeout'); }, 100);
         }
-    }.bind(this);
+    } // tryToPlay()
     
-    this._resolveFrame = function(iFrame) {
-        if (typeof iFrame.ready === 'undefined') {
-            // We will resolve this promise when frame loaded
-            var promiseActions = {};
-            iFrame.ready = new Promise((resolve, reject) => {
-                promiseActions.resolve = resolve.bind(iFrame);
-                promiseActions.reject = reject.bind(iFrame);
+    /**
+     * Making promise interface
+     */
+    _makeOnLoadPromise(element) {
+        if (typeof element.then === 'undefined') {
+            // We will resolve this promise when content of element is loaded
+            var promise = new Promise((resolve, reject) => {
+                element.resolve = resolve.bind(element);
+                element.reject = reject.bind(element);
             });
-            Object.assign(iFrame.ready, promiseActions);
-            iFrame.addEventListener('load', function(event) {
-                event.target.ready.resolve(event);
+            for (let fn of ['then', 'catch', 'finally']) {
+                element[fn] = (...args) => { return promise[fn](...args); };
+            }
+            element.addEventListener('load', function(event) {
+                event.target.resolve(event);
             });
         }
-        return iFrame;
-    }.bind(this);
-    
-    this.getOEmbed();
+        return element;
+    } // _makeOnLoadPromise()
 }
 
 class MessyPlaylist {
@@ -311,7 +333,7 @@ class MessyPlaylist {
                     if (event.data.indexOf('"context":"player.js"') > -1 && event.data.indexOf('"event":"ready"') > -1) {
                         // 23video ready, start playback
                         // Source: https://github.com/23/GlueFrame
-                        //this.current.frame.ready.then(event => {
+                        //this.current.frame.then(event => {
                             // Start playback
                             this.current.frame.contentWindow.postMessage(JSON.stringify({
                                 f: 'set',
@@ -445,6 +467,10 @@ class MessyPlaylist {
             this.soundTested = this.testSound();
         }
         if (event.target.classList.contains('playlist-item')) {
+            if (!!this.container && !!this.container.currentPlaylist) {
+                // If there was other playlist playing.
+                this.container.currentPlaylist.play(null);
+            }
             this.play(event.target, event);
         }
         else if (event.target.classList.contains('btn-playlist-prev')) {
@@ -576,6 +602,11 @@ class MessyPlaylist {
         // Reset progressbar
         //this.onPlaybackProgress({data: {duration: 0, currentTime: 0}});
         
+        if (!!this.container && !!this.container.currentPlaylist && this.container.currentPlaylist != this) {
+            // Some other playlist is already playing.
+            return false;
+        }
+        
         if (!!this.list) {
             for (let listItem of this.list.querySelectorAll('li')) {
                 if (listItem.contains(item)) {
@@ -590,9 +621,12 @@ class MessyPlaylist {
             // End of playlist?
             if (!!this.container) {
                 this.container.embed(false);
+                this.container.currentPlaylist = null;
                 return false;
             }
         }
+        
+        this.container.currentPlaylist = this;
         
         var embedMedia = document.createElement('a');
         embedMedia.classList.add('media-embed');
@@ -603,10 +637,15 @@ class MessyPlaylist {
                 event.preventDefault();
             }
             this.container.embed(embedMedia);
-            embedMedia.embed = new MediaEmbedded(embedMedia);
-            embedMedia.embed.ready.then((embed) => {
+            embedMedia.embed = new MessyMediaEmbed(embedMedia);
+            embedMedia.embed.then(embed => {
                 this.current.frame = embed.embedFrame().frame;
                 this.onEmbedReady({frame: this.current.frame});
+            })
+            .catch(error => {
+                console.error('Failed to play playlist item:', item, error);
+                // Skip current
+                this.play(this.next().value);
             });
         }
     }
