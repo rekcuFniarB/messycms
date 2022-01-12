@@ -129,6 +129,8 @@ function MediaEmbedded(link) {
                 frameSrc.searchParams.set('autoplay', 1);
                 frameSrc.searchParams.set('rel', 0);
                 frameSrc.searchParams.set('enablejsapi', 1);
+                // Youtube doesn't play some videos if we don't send full referrer.
+                this.frame.referrerPolicy = 'no-referrer-when-downgrade';
             }
             else if (frameSrc.hostname == 'w.soundcloud.com') {
                 frameSrc.searchParams.set('auto_play', 'true');
