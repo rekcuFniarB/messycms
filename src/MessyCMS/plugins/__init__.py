@@ -127,7 +127,8 @@ def render(node, requestContext):
         return ''
     
     debug = settings.DEBUG
-    if not node.prop('contentType', '').startswith('text/html'):
+    node_content_type = node.prop('httpContentType', '')
+    if node_content_type and not node_content_type.startswith('text/html'):
         debug = False
     
     available_plugins = dict(plugins_list)
@@ -144,10 +145,12 @@ def render(node, requestContext):
     cache_key = hash( ('messycms', node.id, node_upd_ts, requestContext.request.META.get('QUERY_STRING', ''), requestContext.request.path_info) )
     sentinel = object()
     rendered_string = cache.get(cache_key, sentinel)
+    is_cached = True
     
     if rendered_string is sentinel:
         ## Not found in cache
         rendered_string = ''
+        is_cached = False
         
         if node.type in available_plugins and node.author_id and node.author.is_staff: # {
             ## If there is method
@@ -201,12 +204,17 @@ def render(node, requestContext):
             rendered_string += node.content
         ## endif }
         
-        if debug:
-            rendered_string += f'<!-- block id: {node.id}; type: {node.type} -->\n{rendered_string}\n<!-- endblock {node.id} -->\n'
-        
         rendered_string = parse_links(rendered_string)
         
         cache.set(cache_key, rendered_string)
+    
+    if debug:
+        if is_cached:
+            cache_key = f'; cache key: {cache_key}'
+        else:
+            cache_key = ''
+        
+        rendered_string = f'<!-- block id: {node.id}; type: {node.type}{cache_key} -->\n{rendered_string}\n<!-- endblock {node.id} -->\n'
     
     return rendered_string
 
