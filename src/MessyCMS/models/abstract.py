@@ -328,9 +328,13 @@ class MessyBase(MPTTModel):
         template = ''
         ext_template = self.prop('extTemplate')
         
-        if ext_template and ext_template.link_id:
-            template = ext_template.link.content
-        else:
-            template = self.prop('template', self.content)
+        if type(ext_template) is type(self) and ext_template.content:
+            template = ext_template.content
+        if not template:
+            template = self.prop('template')
+        if not template and self.link_id and self.link.type == 'content':
+            template = self.link.content
+        if not template:
+            template = self.content
         
         return template
