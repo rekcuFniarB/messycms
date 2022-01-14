@@ -11,6 +11,8 @@ from django.urls import reverse
 from MessyCMS import plugins
 import json
 
+settings.CACHE_TIMESTAMP = timezone.now().timestamp()
+
 AUTH_USER_MODEL = get_user_model()
 
 class MessyBase(MPTTModel):
@@ -71,6 +73,7 @@ class MessyBase(MPTTModel):
                     self.parent_id = parent_conf.id
         
         super().save(*args, **kwargs)
+        settings.CACHE_TIMESTAMP = timezone.now().timestamp()
     
     @property
     def conf(self):

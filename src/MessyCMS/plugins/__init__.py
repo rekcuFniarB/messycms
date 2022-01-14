@@ -142,7 +142,7 @@ def render(node, requestContext):
     if node.ts_updated:
         node_upd_ts = node.ts_updated.timestamp()
     
-    cache_key = hash( ('messycms', node.id, node_upd_ts, requestContext.request.META.get('QUERY_STRING', ''), requestContext.request.path_info) )
+    cache_key = hash( ('messycms', node.id, node_upd_ts, settings.CACHE_TIMESTAMP, requestContext.request.META.get('QUERY_STRING', ''), requestContext.request.path_info) )
     sentinel = object()
     rendered_string = cache.get(cache_key, sentinel)
     is_cached = True
