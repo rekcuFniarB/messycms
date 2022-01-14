@@ -32,7 +32,7 @@ def should_skip_middleware(request, response):
         skip = True
     if response.headers.get('Location', ''):
         skip = True
-    if not response.content:
+    if not hasattr(response, 'content') or not response.content:
         skip = True
     #if not template_node_id:
         #skip = True
