@@ -19,9 +19,9 @@ from django.apps import apps
 
 class NodeAdmin(DraggableMPTTAdmin):
     fields = (
-        'id', 'type', 'title', 'menu_title', 'slug', 'short',
-        'node_class', 'show_in_menu', 'available', 'content',
-        'parent', 'sites', 'ts_created', 'ts_updated'
+        'id', 'type', 'title', 'menu_title', 'slug', 'short', 'node_class',
+        'author', 'group', 'show_in_menu', 'available', 'content',
+        'parent', 'link', 'sites', 'ts_created', 'ts_updated'
     )
     readonly_fields = ('id', 'ts_updated',)
     list_display = (
@@ -36,8 +36,8 @@ class NodeAdmin(DraggableMPTTAdmin):
     
     def get_readonly_fields(self, request, obj=None):
         fields = list(super().get_readonly_fields(request, obj))
-        if not request.user.is_superuser and 'ts_created' not in fields:
-            fields.append('ts_created')
+        if not request.user.is_superuser:
+            fields.extend(['ts_created', 'author', 'group'])
         
         return fields
     
@@ -101,8 +101,8 @@ class NodeAdmin(DraggableMPTTAdmin):
         return qs.filter(Q(author=request.user) | Q(group__in=request.user.groups.all())).filter(sites=request.site.id)
     
     def get_form(self, request, obj=None, **kwargs):
-        if not request.user.is_superuser:
-            kwargs['exclude'] = ['author', 'group', 'link']
+        #if not request.user.is_superuser:
+        #    kwargs['exclude'] = ['author', 'group']
         
         form = super().get_form(request, obj, **kwargs)
         
