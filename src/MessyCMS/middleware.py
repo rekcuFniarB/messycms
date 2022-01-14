@@ -13,7 +13,7 @@ def log(*args, **kwargs):
         pprint(args)
 
 def should_skip_middleware(request, response):
-    skip = True
+    skip = False
     if request.resolver_match:
         if request.resolver_match.app_name == 'admin':
             skip = True
@@ -226,6 +226,63 @@ class PluggableExternalAppsWrapper:
         
         return response
 
+class MoveHtmlParts:
+    '''
+    Moving html parts to the header or to the body end.
+    '''
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        
+        ## Before view code
+        
+        response = self.get_response(request)
+        
+        ## After view code
+        
+        if not should_skip_middleware(request, response):
+            snippets = self.substr(response.content, (b'<template ', b'</template>'))
+            for snippet in snippets:
+                partition = snippet.partition(b'>')
+                if partition[1] and partition[2]:
+                    ## is <template data-head>
+                    if b'data-move-to-head' in partition[0]:
+                        ## Removing from original place and blacing before </head>
+                        response.content = response.content.replace(b'<template ' + snippet + b'</template>', b'').replace(b'</head>', partition[2] + b'\n</head>')
+                    elif b'data-move-to-bottom' in partition[0]:
+                        ## Removing from original place and blacing before </body>
+                        response.content = response.content.replace(b'<template ' + snippet + b'</template>', b'').replace(b'</body>', partition[2] + b'\n</body>')
+        
+        return response
+    
+    @classmethod
+    def substr(cls, string, wrapper):
+        '''
+        Find substring enclosed by wrapper;
+        Args:
+            string: input string or bytes
+            wrapper: tuple of two strings.
+        Returns: list of found substrings.
+        '''
+        found = []
+        start = 0
+        end = 0
+        
+        while start > -1 and end > -1:
+            start = string.find(wrapper[0], start)
+            if start > -1:
+                start += len(wrapper[0])
+                end = string.find(wrapper[1], start)
+                if end > -1:
+                    substring = string[start:end]
+                    start = end + len(wrapper[1])
+                    if substring:
+                        found.append(substring)
+        
+        return found
+
 class OpenGraph:
     '''
     Adds opengraph meta tags to header
@@ -242,7 +299,7 @@ class OpenGraph:
         
         ## After view code
         
-        if hasattr(response, 'messyContext'):
+        if hasattr(response, 'messyContext') and not should_skip_middleware(request, response):
             og_html = ''
             
             og_title = response.messyContext['request_node'].prop('ogTitle', '') or response.messyContext['request_node'].title
