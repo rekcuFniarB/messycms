@@ -48,8 +48,8 @@ class MessyBase(MPTTModel):
     link = TreeForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True,
         help_text='Template node to insert into.', verbose_name='Parent template')
     sites = models.ManyToManyField(Site, null=True, blank=True)
-    ts_created = models.DateTimeField(default=timezone.now)
-    ts_updated = models.DateTimeField(auto_now=True)
+    ts_created = models.DateTimeField(default=timezone.now, blank=True)
+    ts_updated = models.DateTimeField(default=timezone.now, blank=True)
     
     ## Storage for computed data.
     context = {}
@@ -71,6 +71,8 @@ class MessyBase(MPTTModel):
                     parent_conf = plugins.get_model().objects.create(type='.conf', parent_id=self.parent_id)
                 if parent_conf:
                     self.parent_id = parent_conf.id
+        
+        self.ts_updated = timezone.now()
         
         super().save(*args, **kwargs)
         settings.CACHE_TIMESTAMP = timezone.now().timestamp()

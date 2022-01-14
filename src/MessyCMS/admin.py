@@ -18,7 +18,12 @@ from django.apps import apps
 # Register your models here.
 
 class NodeAdmin(DraggableMPTTAdmin):
-    readonly_fields = ('ts_updated', 'id')
+    fields = (
+        'id', 'type', 'title', 'menu_title', 'slug', 'short',
+        'node_class', 'show_in_menu', 'available', 'content',
+        'parent', 'sites', 'ts_created', 'ts_updated'
+    )
+    readonly_fields = ('id', 'ts_updated',)
     list_display = (
         'tree_actions',
         'indented_title',
@@ -28,6 +33,13 @@ class NodeAdmin(DraggableMPTTAdmin):
     list_display_links = (
         'indented_title',
     )
+    
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(super().get_readonly_fields(request, obj))
+        if not request.user.is_superuser and 'ts_created' not in fields:
+            fields.append('ts_created')
+        
+        return fields
     
     def save_model(self, request, obj, form, change):
         ## It is executed before model's save()
@@ -85,6 +97,7 @@ class NodeAdmin(DraggableMPTTAdmin):
         
         if request.user.is_superuser:
             return qs
+        
         return qs.filter(Q(author=request.user) | Q(group__in=request.user.groups.all())).filter(sites=request.site.id)
     
     def get_form(self, request, obj=None, **kwargs):
