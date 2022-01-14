@@ -2,6 +2,7 @@ from django.conf import settings
 import threading
 from MessyCMS.models import Node
 from django.shortcuts import render
+from django.utils.html import escape as html_escape
 from django.http.response import HttpResponse, HttpResponseNotFound
 
 _thread_locals = threading.local()
@@ -10,6 +11,33 @@ def log(*args, **kwargs):
     if settings.DEBUG:
         from pprint import pprint
         pprint(args)
+
+def should_skip_middleware(request, response):
+    skip = True
+    if request.resolver_match:
+        if request.resolver_match.app_name == 'admin':
+            skip = True
+        
+        #if request.resolver_match.app_name == 'messycms' and type(response) is HttpResponse:
+        #    ## response may be also HttpResponseNotFound, not bypassig it
+        #    ## allow us insert error response into template node.
+        #    skip = True
+        
+        if request.resolver_match.app_name == 'messycms' and type(response) is HttpResponseNotFound:
+            skip = False
+    
+    if 'HTTP_X_REQUESTED_WITH' in request.META:
+        skip = True
+    if not response.headers.get('Content-Type', '').startswith('text/html'):
+        skip = True
+    if response.headers.get('Location', ''):
+        skip = True
+    if not response.content:
+        skip = True
+    #if not template_node_id:
+        #skip = True
+    
+    return skip
 
 class DomainUrlconf:
     '''
@@ -70,26 +98,8 @@ class PluggableExternalAppsWrapper:
                     if request.resolver_match.route.rstrip('/ ').endswith(route.strip('/ ')):
                         skip = False
                         break
-            
-            if request.resolver_match.app_name == 'admin':
-                skip = True
-            #if request.resolver_match.app_name == 'messycms' and type(response) is HttpResponse:
-            #    ## response may be also HttpResponseNotFound, not bypassig it
-            #    ## allow us insert error response into template node.
-            #    skip = True
-            if request.resolver_match.app_name == 'messycms' and type(response) is HttpResponseNotFound:
-                skip = False
         
-        if 'HTTP_X_REQUESTED_WITH' in request.META:
-            skip = True
-        if not response.headers.get('Content-Type', '').startswith('text/html'):
-            skip = True
-        if response.headers.get('Location', ''):
-            skip = True
-        if not response.content:
-            skip = True
-        #if not template_node_id:
-            #skip = True
+        skip = skip or should_skip_middleware(request, response)
         
         ## Get first available templates
         if not skip:
@@ -188,25 +198,82 @@ class PluggableExternalAppsWrapper:
             node.ts_updated = request_node.ts_updated
         ## } endif not ajax
         
-        response = {'context': {'node': node, 'request_node': request_node, 'allnodes': {}, 'template_type': template_type}}
-        ## "allnodes" will contain all rendered subnodes
-        response['response'] = render(request, templates[template_type], response['context'], **kwargs)
+        context = {
+            'node': node,
+            'request_node': request_node,
+            'template_node': node,
+            'allnodes': {},
+            'template_type': template_type
+        }
         
-        responseContentType = response['response'].headers.get('Content-Type', '')
+        ## "allnodes" will contain all rendered subnodes
+        response = render(request, templates[template_type], context, **kwargs)
+        setattr(response, 'messyContext', context)
+        
+        responseContentType = response.headers.get('Content-Type', '')
         
         if responseContentType.startswith('text/html'):
             ## Inserting deferred nodes.
             ## For example, if node has slug "append-to-head"
             ## it will be appended to <head> element (inserted before closing </head> tag).
-            for node in response['context']['allnodes'].values():
+            for node in response.messyContext['allnodes'].values():
                 append_to = node.append_to()
                 if append_to:
-                    append_to = append_to.encode(response['response'].charset)
-                    response['context']['node'] = node
-                    append_render = render(request, templates['internal'], response['context'])
-                    response['response'].content = response['response'].content.replace(append_to, append_render.content + append_to)
+                    append_to = append_to.encode(response.charset)
+                    response.messyContext['node'] = node
+                    append_render = render(request, templates['internal'], response.messyContext)
+                    response.content = response.content.replace(append_to, append_render.content + append_to)
         
-        return response['response']
+        return response
+
+class OpenGraph:
+    '''
+    Adds opengraph meta tags to header
+    '''
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        
+        ## Before view code
+        
+        response = self.get_response(request)
+        
+        ## After view code
+        
+        if hasattr(response, 'messyContext'):
+            og_html = ''
+            
+            og_title = response.messyContext['request_node'].prop('ogTitle', '') or response.messyContext['request_node'].title
+            if og_title:
+                og_title = html_escape(og_title)
+                og_html += f'<meta property="og:title" content="{og_title}"/>\n'
+            
+            og_image = response.messyContext['request_node'].prop('ogImage', None) or response.messyContext['template_node'].prop('ogImage', None)
+            if og_image:
+                og_image = html_escape(og_image)
+                og_html += f'<meta property="og:image" content="{og_image}"/>\n'
+            
+            og_description = response.messyContext['request_node'].prop('ogDescription', None) or response.messyContext['template_node'].prop('ogDescription', None)
+            if og_description:
+                og_description = html_escape(og_description)
+                og_html += f'<meta property="og:description" content="{og_description}"/>\n'
+            
+            og_url = 'https://'
+            if not request.is_secure():
+                og_url='http://'
+            og_url += request.META.get('HTTP_HOST')
+            og_url += response.messyContext['request_node'].get_absolute_url()
+            og_html += f'<meta property="og:url" content="{html_escape(og_url)}">\n'
+            
+            if og_html:
+                og_html += '</head>\n'
+                og_html = og_html.encode(response.charset)
+                ## Appending to the end of html head
+                response.content = response.content.replace('</head>'.encode(response.charset), og_html)
+        
+        return response
 
 class DBRouter:
     '''Switching databases based on hostname
