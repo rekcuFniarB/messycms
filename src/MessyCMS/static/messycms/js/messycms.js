@@ -196,10 +196,20 @@ MessyCMS = function() {
                 }
                 var metadata = {};
                 if (!!metadataContainer) {
-                    var div = document.createElement('div');
-                    div.innerHTML = metadataContainer.innerText;
-                    for (var element of div.children) {
-                        metadata[element.dataset.field] = element.innerText;
+                    if (metadataContainer.type.toLowerCase() == 'text/html') {
+                        var div = document.createElement('div');
+                        div.innerHTML = metadataContainer.innerText;
+                        for (var element of div.children) {
+                            metadata[element.dataset.field] = element.innerText;
+                        }
+                    }
+                    else if (metadataContainer.type.toLowerCase() == 'application/json') {
+                        try {
+                            metadata = JSON.parse(metadataContainer.innerText);
+                        }
+                        catch(error) {
+                            console.error('Metadata reading failed:', error);
+                        }
                     }
                 }
                 return metadata;
@@ -231,11 +241,26 @@ MessyCMS = function() {
                     }
                     for (let script of this.querySelectorAll('script')) {
                         // Executing new scripts
-                        if (!script.type || script.type.toLowerCase() == 'text/javascript') {
-                            if (!!script.src) {
-                                This.requireScript(script.src);
-                            } else {
-                                eval.apply(window, [script.innerText]);
+                        This.requireScript(script);
+                    }
+                    for (let template of this.querySelectorAll('template')) {
+                        let targetAppend;
+                        if (typeof template.dataset.moveToHead !== 'undefined') {
+                            targetAppend = document.querySelector('head');
+                        }
+                        else if (typeof template.dataset.moveToBottom !== 'undefined') {
+                            targetAppend = document.body;
+                        }
+                        if (!!targetAppend) {
+                            for (let element of template.content.children) {
+                                if (element.tagName == 'SCRIPT') {
+                                    This.requireScript(script);
+                                }
+                                else {
+                                    if (targetAppend.innerHTML.indexOf(element.outerHTML) == -1) {
+                                        targetAppend.appendChild(element);
+                                    }
+                                }
                             }
                         }
                     }
@@ -393,8 +418,34 @@ MessyCMS = function() {
         return script.promise;
     }.bind(this);
     
+    /**
+     * Load and execute script only once.
+     * @param scring|object src   Script URL or script object.
+     * @param string type   script type
+     * @return object       Promose object which is fulfilled when script is loaded.
+     */
     this.requireScript = function(src, type) {
-        var script = document.querySelector(`[src$="${src}"]`);
+        var script;
+        if (typeof src === 'string') {
+            script = document.querySelector(`[src$="${src}"]`);
+        }
+        else if (typeof src === 'object' && src.tagName == 'SCRIPT') {
+            script = src;
+            src = script.src;
+            
+            if (!script.type || script.type.toLowerCase() == 'text/javascript') {
+                if (!!script.src) {
+                    return this.requireScript(script.src, script.type);
+                } else {
+                    eval.apply(window, [script.innerText]);
+                }
+            }
+            
+            return new Promise((resolve, reject) => {
+                resolve({type: 'load', target: script});
+            });
+        }
+        
         var promise;
         if (!script) {
             promise = this.loadScript(src, type);
