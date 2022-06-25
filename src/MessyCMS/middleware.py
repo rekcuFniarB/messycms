@@ -250,10 +250,10 @@ class MoveHtmlParts:
                     ## is <template data-head>
                     if b'data-move-to-head' in partition[0]:
                         ## Removing from original place and blacing before </head>
-                        response.content = response.content.replace(b'<template ' + snippet + b'</template>', b'').replace(b'</head>', partition[2] + b'\n</head>')
+                        response.content = response.content.replace(b'<template ' + snippet + b'</template>', b'').replace(b'</head>', partition[2] + b'\n</head>', 1)
                     elif b'data-move-to-bottom' in partition[0]:
                         ## Removing from original place and blacing before </body>
-                        response.content = response.content.replace(b'<template ' + snippet + b'</template>', b'').replace(b'</body>', partition[2] + b'\n</body>')
+                        response.content = response.content.replace(b'<template ' + snippet + b'</template>', b'').replace(b'</body>', partition[2] + b'\n</body>', 1)
         
         return response
     
@@ -328,7 +328,7 @@ class OpenGraph:
                 og_html += '</head>\n'
                 og_html = og_html.encode(response.charset)
                 ## Appending to the end of html head
-                response.content = response.content.replace('</head>'.encode(response.charset), og_html)
+                response.content = response.content.replace('</head>'.encode(response.charset), og_html, 1)
         
         return response
 
