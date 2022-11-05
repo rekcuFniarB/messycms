@@ -216,8 +216,27 @@ MessyCMS = function() {
             }.bind(container);
             
             container.loadContent = function(url, pushState, scrollOnFinish) {
+                let eTarget = {dataset: {}};
+                let target = this;
+                
+                if (typeof url === 'object') {
+                    if (!url.href) {
+                        return console.error('ERROR: loadContent(): object has no "href" param', url);
+                    }
+                    eTarget = url;
+                    url = url.href;
+                }
+                
                 if (typeof pushState === 'undefined') pushState = true;
                 if (typeof scrollOnFinish === 'undefined') scrollOnFinish = true;
+                
+                if (eTarget.dataset.target) {
+                    target = document.querySelector(eTarget.dataset.target);
+                    if (!target) {
+                        return console.error(`ERROR: AJAX target '${eTarget.dataset.target}' not found.`);
+                    }
+                    pushState = false;
+                }
                 
                 //var requestURL = new URL(url);
                 // URL class sucks, it doesn't accept relative paths
@@ -234,16 +253,16 @@ MessyCMS = function() {
                 })
                 .then((response) => { return response.text(); })
                 .then((response) => {
-                    this.innerHTML = response;
+                    target.innerHTML = response;
                     var metadata = this.metadata(requestURL.pathname);
                     if (!!metadata.title) {
                         document.title = metadata.title;
                     }
-                    for (let script of this.querySelectorAll('script')) {
+                    for (let script of target.querySelectorAll('script')) {
                         // Executing new scripts
                         This.requireScript(script);
                     }
-                    for (let template of this.querySelectorAll('template')) {
+                    for (let template of target.querySelectorAll('template')) {
                         let targetAppend;
                         if (typeof template.dataset.moveToHead !== 'undefined') {
                             targetAppend = document.querySelector('head');
@@ -276,7 +295,7 @@ MessyCMS = function() {
                             scrollToElement = document.getElementById(requestURL.hash.substring(1));
                         }
                         if (!scrollToElement) {
-                            scrollToElement = this;
+                            scrollToElement = target;
                         }
                         if (typeof scrollToElement.scrollIntoView === 'function') {
                             scrollToElement.scrollIntoView({behavior: 'smooth'});
@@ -299,7 +318,7 @@ MessyCMS = function() {
                     if (!!eventTarget.href && eventTarget.getAttribute('href').indexOf('#') === 0) return;
                     if (eventTarget.protocol.indexOf('http') !== 0) return;
                     event.preventDefault();
-                    container.loadContent(eventTarget.href);
+                    container.loadContent(eventTarget);
                 }
                 // Add other handlers here);
             });
