@@ -60,6 +60,9 @@ class MessyMediaEmbed {
                                 this.embedFrame(event).tryToPlay(null, 'click');
                             }, {once: true});
                         }
+                        
+                        data.thumbnail_url = this.link.dataset.embedThumbnail || this.link.dataset.thumbnailUrl || data.thumbnail_url || null;
+                        
                         if (!!data.thumbnail_url) {
                             this.link.style.backgroundImage = `url(${data.thumbnail_url})`;
                             this.link.style.backgroundRepeat = 'no-repeat';
@@ -76,10 +79,6 @@ class MessyMediaEmbed {
                     if (!!this.link.dataset.embedFrameSrc) {
                         // If predefined frame url
                         this.data.html = `<iframe src="${this.link.dataset.embedFrameSrc}" allow="autoplay; fullscreen"></iframe>`;
-                        
-                        if (!!this.link.dataset.embedThumbnail) {
-                            this.data.thumbnail_url = this.link.dataset.embedThumbnail;
-                        }
                         embedDataReady.bind(this)(this.data);
                     }
                     else if (!!this.link.dataset.embedTemplate) {
@@ -87,9 +86,6 @@ class MessyMediaEmbed {
                         if (!!embedTemplate) {
                             this.data.html = embedTemplate.innerHTML;
                             this.data.embedTemplate = embedTemplate;
-                        }
-                        if (!!this.link.dataset.embedThumbnail) {
-                            this.data.thumbnail_url = this.link.dataset.embedThumbnail;
                         }
                         embedDataReady.bind(this)(this.data);
                     }
