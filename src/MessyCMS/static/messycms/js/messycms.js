@@ -246,6 +246,7 @@ MessyCMS = function() {
                 requestURL.params.set('metadata', 'yes');
                 requestURL.search = requestURL.params.toString();
                 
+                document.body.classList.add('loading');
                 return fetch(requestURL.href, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
@@ -305,6 +306,8 @@ MessyCMS = function() {
                 .catch((error) => {
                     console.error('AJAX ERROR:', error);
                     document.location = requestURL.href;
+                }).finally(() => {
+                    document.body.classList.remove('loading');
                 });
             }.bind(container);
             
