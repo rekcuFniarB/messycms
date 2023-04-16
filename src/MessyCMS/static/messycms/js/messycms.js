@@ -230,6 +230,7 @@ MessyCMS = function() {
                 if (typeof pushState === 'undefined') pushState = true;
                 if (typeof scrollOnFinish === 'undefined') scrollOnFinish = true;
                 
+                // If we want to load result into some other container
                 if (eTarget.dataset.target) {
                     target = document.querySelector(eTarget.dataset.target);
                     if (!target) {
@@ -245,6 +246,15 @@ MessyCMS = function() {
                 requestURL.params = new URLSearchParams(requestURL.search);
                 requestURL.params.set('metadata', 'yes');
                 requestURL.search = requestURL.params.toString();
+                
+                if (pushState) {
+                    // Refreshing current state
+                    window.history.replaceState({
+                        url: document.location.href,
+                        title: document.title,
+                        scrollState: document.scrollingElement.scrollTop
+                    }, document.title);
+                }
                 
                 document.body.classList.add('loading');
                 return fetch(requestURL.href, {
@@ -285,7 +295,10 @@ MessyCMS = function() {
                         }
                     }
                     if (pushState) {
-                        window.history.pushState({url: url, title: document.title}, document.title, url);
+                        window.history.pushState({
+                            url: url,
+                            title: document.title
+                        }, document.title, url);
                     }
                 })
                 .then(() => {
@@ -329,12 +342,26 @@ MessyCMS = function() {
             window.addToEventHandlers('popstate.ajax.mode', (event) => {
                 if (!!event.state) {
                     if (!!event.state.url) {
-                        container.loadContent(event.state.url, false);
+                        let loadReady = container.loadContent(event.state.url, false, !event.state.scrollState);
+                        // Restoring scroll state
+                        loadReady.then(() => {
+                            if (event.state.scrollState) {
+                                document.scrollingElement.scrollTop = event.state.scrollState;
+                            }
+                            if (event.state.title) {
+                                document.title = event.state.title;
+                            }
+                        });
                     }
                 }
             });
             
-            window.history.replaceState({url: document.location.href, title: document.title}, document.title);
+            // Current state on init
+            window.history.replaceState({
+                url: document.location.href,
+                title: document.title,
+                scrollState: document.scrollingElement.scrollTop
+            }, document.title);
         }
         return container;
     };
