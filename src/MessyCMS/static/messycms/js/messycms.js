@@ -186,7 +186,7 @@ MessyCMS = function() {
         if (typeof container === 'string') {
             container = document.querySelector(container);
         }
-        if (typeof container === 'object') {
+        if (typeof container === 'object' && typeof container.loadContent !== 'function') {
             container.metadata = function(path) {
                 var metadataContainer;
                 if (path) {
@@ -302,7 +302,7 @@ MessyCMS = function() {
                     }
                 })
                 .then(() => {
-                    window.dispatchEvent(new Event('load'));
+                    document.dispatchEvent(new Event('load', {bubbles: true, cancelable: true}));
                     if (scrollOnFinish) {
                         var scrollToElement;
                         if (requestURL.hash.length > 1) {
