@@ -163,7 +163,10 @@ class MessyBase(MPTTModel):
             return self.__rendered
     
     def get_node_path(self):
-        ancestors = self.get_ancestors(include_self=True).values()
+        ancestors = ()
+        if hasattr(self, '_state') and hasattr(self._state, 'adding') and not self._state.adding:
+            ## we can not call get_ancestors() on unsaved nodes.
+            ancestors = self.get_ancestors(include_self=True).values()
         slugs = []
         for item in ancestors:
             ## Skipping root directory because it used for site root.
