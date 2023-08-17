@@ -271,7 +271,7 @@ MessyCMS = function() {
                     }
                     for (let script of target.querySelectorAll('script')) {
                         // Executing new scripts
-                        This.requireScript(script);
+                        This.loadScript(script);
                     }
                     for (let template of target.querySelectorAll('template')) {
                         let targetAppend;
@@ -302,7 +302,9 @@ MessyCMS = function() {
                     }
                 })
                 .then(() => {
-                    document.dispatchEvent(new Event('load', {bubbles: true, cancelable: true}));
+                    let loadEvent = new Event('load', {bubbles: true, cancelable: true});
+                    document.dispatchEvent(loadEvent);
+                    window.dispatchEvent(loadEvent);
                     if (scrollOnFinish) {
                         var scrollToElement;
                         if (requestURL.hash.length > 1) {
@@ -454,14 +456,43 @@ MessyCMS = function() {
     }.bind(this);
     
     this.loadScript = function(src, type) {
+        if (typeof document.alreadyLoadedScripts !== 'object') {
+            document.alreadyLoadedScripts = [];
+        }
+        
         if (!type) type = 'text/javascript';
         var script = document.createElement('script');
         if (!script.promise) {
             script.promise = new Promise((resolve, reject) => {
-                script.setAttribute('type', type);
-                script.setAttribute('src', src);
+                const inject = function(script, srcScript) {
+                    if (srcScript && srcScript.parentElement) {
+                        srcScript.parentElement.insertBefore(script, srcScript);
+                    } else {
+                        document.body.appendChild(script);
+                    }
+                };
+                
+                if (typeof src === 'object' && src.tagName == 'SCRIPT') {
+                    // For scripts injected by AJAX response
+                    for (let attr of src.attributes) {
+                        script.setAttribute(attr.name, attr.value);
+                    }
+                    script.innerHTML = src.innerHTML;
+                    script.originScript = src;
+                } else {
+                    script.setAttribute('type', type);
+                    script.setAttribute('src', src);
+                }
+                
+                if (script.src) {
+                    if (document.alreadyLoadedScripts.indexOf(script.src) > -1) {
+                        return resolve({target: script.originScript || script, type: 'load'});
+                    }
+                    document.alreadyLoadedScripts.push(script.src);
+                }
+                
                 script.addEventListener('load', resolve.bind(script)); // binding doesn't work here :(
-                document.body.append(script);
+                inject(script, src);
             });
         }
         return script.promise;
@@ -482,7 +513,7 @@ MessyCMS = function() {
             script = src;
             src = script.src;
             
-            if (!script.type || script.type.toLowerCase() == 'text/javascript') {
+            if (!script.type || ['text/javascript', 'module'].indexOf(script.type.toLowerCase()) > -1) {
                 if (!!script.src) {
                     return this.requireScript(script.src, script.type);
                 } else {
