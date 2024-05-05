@@ -3,11 +3,6 @@
  * License:  MIT
  */
 
-// The library was renamed to html-mess.js
-// This file is kept for external links
-// and is not updated anymore.
-// Please use html-mess.js instead.
-
 (function() {
     if (typeof Element.prototype.addToEventHandlers === 'undefined') {
         Element.prototype.addToEventHandlers = function(type, handler) {
@@ -624,9 +619,7 @@ class HtmlMess {
                         element.innerHTML = '';
                         const newCont = document.createElement('div');
                         newCont.innerHTML = response;
-                        console.log('NEW CONT', newCont);
                         for (let elementToMove of newCont.querySelectorAll(element.dataset.select)) {
-                            console.log('MOVING', elementToMove, element);
                             element.appendChild(elementToMove);
                         }
                     }
