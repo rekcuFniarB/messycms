@@ -180,8 +180,6 @@
 })();
 
 class HtmlMess {
-    // var This = this;
-    
     constructor(conf) {
         const This = this;
         
@@ -195,7 +193,7 @@ class HtmlMess {
         }
         
         if (this.postprocessEvent) {
-            window.addEventListener(this.postprocessEvent, this.postprocessAll);
+            window.addEventListener(this.postprocessEvent, event => this.postprocessAll(event));
         }
         
         this.modal = document.createElement('div');
