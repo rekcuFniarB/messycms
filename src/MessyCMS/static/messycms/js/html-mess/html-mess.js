@@ -1,18 +1,29 @@
 /**
- * MessyCMS  https://github.com/rekcuFniarB/messycms#readme
+ * HTML Mess  https://github.com/rekcuFniarB/messycms/tree/master/src/MessyCMS/static/messycms/js/html-mess#readme
  * License:  MIT
  */
 
-// A library for messing with HTML
-export class HtmlMess {
+class HtmlMess {
     // Postprocess cycle imit
     // for preventing infinite loop
-    postprocessCycleLimit = 10;
+    postprocessCycleLimit = 15;
     ajaxModeSelect = '';
     ajaxModeTarget = '';
     // Event name which will trigger postprocessing
     postprocessEvent = 'load';
     templates = {};
+    methods = [
+        'includeUrl',
+        'applyFunction',
+        'removeElement',
+        'insertAfter',
+        'insertBefore',
+        'appendChild',
+        'wrapElement',
+        'removeClasses',
+        'addClasses',
+    ];
+    plugins = {};
     
     constructor(conf) {
         const This = this;
@@ -475,6 +486,17 @@ export class HtmlMess {
             }, document.title);
         }
         
+        if (eTarget.dataset.modifyRequest) {
+            const modifyRequest =
+                this.constructor.getValueByName(eTarget.dataset.modifyRequest);
+            if (typeof modifyRequest === 'function') {
+                const modified = modifyRequest(requestURL, requestConf, eTarget);
+                requestURL = modified.requestURL || requestURL;
+                requestConf = modified.requestConf || requestConf;
+                eTarget = modified.eTarget || eTarget;
+            }
+        }
+        
         document.body.classList.add('loading');
         return fetch(requestURL.href, requestConf)
         .then(response => {
@@ -519,6 +541,9 @@ export class HtmlMess {
                 if (responseChildrenSelector.indexOf('[id]') !== -1) {
                     for (let el of responseHtml.querySelectorAll('[id]')) {
                         let old = target.querySelector(`#${el.id}`);
+                        if (!old && target.id == el.id) {
+                            old = target;
+                        }
                         if (old) {
                             foundById = true;
                             old.parentElement.insertBefore(el, old);
@@ -830,16 +855,6 @@ export class HtmlMess {
             if (!template.id) continue;
             this.templates[template.id] = template;
             templatesList[template.id] = template;
-            
-            if (typeof Handlebars !== 'undefined') {
-                if (typeof template.dataset.handlebars !== 'undefined') {
-                    template._compiled =
-                        Handlebars.compile(template.innerHTML);
-                }
-                else if (typeof template.dataset.handlebarsPartial !== 'undefined') {
-                    Handlebars.registerPartial(template.id, template.innerHTML);
-                }
-            }
         }
         
         window.dispatchEvent(new Event(this.postprocessEvent, {bubbles: true, cancelable: true}));
@@ -848,12 +863,12 @@ export class HtmlMess {
     
     postprocessAll(event) {
         const results = [];
-        if (document.body.classList.contains('mess-processing')) {
+        if (document.body.classList.contains('htmlmess-processing')) {
             results.push(true);
             return false;
         }
-        document.body.classList.add('mess-processing');
-        document.body.classList.remove('mess-processing-done');
+        document.body.classList.add('htmlmess-processing');
+        document.body.classList.remove('htmlmess-processing-done');
         if (!this._htmlPostprocessCount) {
             this._htmlPostprocessCount = 0;
         }
@@ -862,7 +877,7 @@ export class HtmlMess {
         // Converting all methods to kebab-case names
         // for [data-method-name]
         let dataSelectors = [];
-        for (let x of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
+        for (let x of this.methods) {
             if (typeof this[x] === 'function') {
                 x = x.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
                 x = `[data-${x}]`;
@@ -902,14 +917,14 @@ export class HtmlMess {
                 if (window.DEBUG || this.DEBUG) {
                     console.log('DEBUG: proc results', results);
                 }
-                document.body.classList.remove('mess-processing');
-                document.body.classList.add('mess-processing-done');
+                document.body.classList.remove('htmlmess-processing');
+                document.body.classList.add('htmlmess-processing-done');
                 
                 // If any of results have non empty value
                 if (results.some(x => x)) {
                     if (this._htmlPostprocessCount > this.postprocessCycleLimit) {
                         this._htmlPostprocessCount = 0;
-                        console.error('ERROR: postprocess limit reached, you need to find what causes infinite loop.', results);
+                        console.error(`ERROR: postprocess limit ${this.postprocessCycleLimit} reached, you need to find what causes infinite loop.`, results);
                     }
                     else {
                         // Second pass untill nothing found to process
@@ -919,10 +934,14 @@ export class HtmlMess {
                         );
                     }
                 }
+                else {
+                    this._htmlPostprocessCount = 0;
+                }
+                return results;
             })
             .finally(() => {
-                // document.body.classList.remove('mess-processing');
-                // document.body.classList.add('mess-processing-done');
+                // document.body.classList.remove('htmlmess-processing');
+                // document.body.classList.add('htmlmess-processing-done');
             });
     }
     
@@ -948,8 +967,20 @@ export class HtmlMess {
         }
         
         for (let f in template.dataset) {
-            if (typeof this[f] === 'function') {
-                results.push(this[f](element, template));
+            if (
+                typeof this[f] === 'function'
+                && this.methods.indexOf(f) > -1
+            ) {
+                let result = this[f](element, template);
+                if (
+                    result && (this.DEBUG || window.DEBUG)
+                    && typeof result.then === 'undefined'
+                ) {
+                    let r = {};
+                    r[`#${template.id} ${f}()`] = result;
+                    result = r;
+                }
+                results.push(result);
             }
         }
         
@@ -960,14 +991,18 @@ export class HtmlMess {
         let elements = [];
         
         if (template.dataset.select) {
-            if (typeof template.dataset.handlebars !== 'undefined') {
-                let dataGet = this.getValueByName(template.dataset.select);
+            let dataGet = this.getValueByName(template.dataset.select);
+            if (typeof dataGet === 'function') {
+                elements = dataGet(template);
                 if (
-                    typeof template._compiled === 'function'
-                    && typeof dataGet === 'function'
+                    typeof elements.length === 'undefined'
+                    && typeof elements.size === 'undefined'
                 ) {
-                    let html = template._compiled(dataGet(template));
-                    elements = [...this.getHtmlFromTemplate(html).children];
+                    elements = [elements];
+                }
+                if (typeof elements[0].querySelector === 'undefined') {
+                    // Not html element
+                    return elements;
                 }
             }
             else {
@@ -976,7 +1011,7 @@ export class HtmlMess {
         }
         else {
             // Use self
-            if (template.tagName == 'TEMPLATE') {
+            if (['TEMPLATE', 'SCRIPT'].indexOf(template.tagName) > -1) {
                 elements = [...this.getHtmlFromTemplate(template).children];
             }
             else {
@@ -984,10 +1019,41 @@ export class HtmlMess {
             }
         }
         
-        if (template.dataset.notClosest) {
-            // Removing element from set
-            // if it has closest with selector 'data-not-closest'
-            elements = elements.filter(x => !x.closest(template.dataset.notClosest))
+        if (template.dataset.closest) {
+            // Moving upper to this selector
+            elements = elements.map(x =>
+                x.closest(template.dataset.closest))
+                .filter(x => x);
+            elements = [...new Set(elements)];
+        }
+        
+        if (template.dataset.hasParent) {
+            // Removing element from the set
+            // if it hasn't parent with selector
+            // data-has-parent
+            elements = elements.filter(x =>
+                x.closest(template.dataset.hasParent));
+        }
+        
+        if (template.dataset.hasNotParent) {
+            // Removing element from the set
+            // if it has parent with selector 'data-has-not-parent'
+            elements = elements.filter(x =>
+                !x.closest(template.dataset.hasNotParent));
+        }
+        
+        if (template.dataset.hasChildren) {
+            // Keeping only elements which have children
+            // with selector data-has-children
+            elements = elements.filter(x =>
+                x.querySelector(template.dataset.hasChildren));
+        }
+        
+        if (template.dataset.hasNotChildren) {
+            // Keeping only elements which haven't
+            // children with selector data-has-not-children
+            elements = elements.filter(x =>
+                !x.querySelector(template.dataset.hasNotChildren));
         }
         
         return elements;
@@ -1017,6 +1083,8 @@ export class HtmlMess {
     }
     
     addClasses(element, template) {
+        if (!element.tagName) return false;
+        
         let changed = false;
         let length = element.classList.length;
         let classes = template.dataset.addClasses.split(' ');
@@ -1029,6 +1097,8 @@ export class HtmlMess {
     }
     
     removeClasses(element, template) {
+        if (!element.tagName) return false;
+        
         let changed = false;
         let length = element.classList.length;
         let classes = template.dataset.removeClasses.split(' ');
@@ -1041,6 +1111,8 @@ export class HtmlMess {
     }
     
     wrapElement(element, template) {
+        if (!element.tagName) return false;
+        
         const wrapper = this.constructor.getHtmlFromTemplate(template);
         let target = wrapper.querySelector('[data-insert]');
         if (!target) return false;
@@ -1050,9 +1122,12 @@ export class HtmlMess {
             element.parentElement.insertBefore(c, element);
         }
         
+        // If should use content only
         if (typeof template.dataset.stripHtml !== 'undefined') {
             target.textContent = element.textContent;
+            element.remove();
         }
+        // Or insert as is
         else {
             target.appendChild(element);
         }
@@ -1061,6 +1136,8 @@ export class HtmlMess {
     }
     
     appendChild(element, template) {
+        if (!element.tagName) return false;
+        
         let target = this.constructor.qsAll(
             template.dataset.appendChild
             || template.dataset.insertBefore
@@ -1069,7 +1146,8 @@ export class HtmlMess {
         if (!target) return false;
         
         if (template.dataset.replace) {
-            let existing = this.constructor.qsAll(template.dataset.replace, target).values().next().value;
+            let existing = this.constructor.qsAll(template.dataset.replace, target)
+                .values().next().value;
             if (existing) {
                 existing.remove();
             }
@@ -1106,33 +1184,9 @@ export class HtmlMess {
     }
     
     removeElement(element, template) {
+        if (typeof element.remove !== 'function') return false;
+        
         return element.remove();
-    }
-    
-    sanitizeElement(element, template) {
-        // Required setup:
-        // import dompurify from 'https://cdn.jsdelivr.net/npm/dompurify@3/+esm';
-        // Pass method to the constructor:
-        // new HtmlMess({..., methodSanitizeHtml: dompurify.sanitize})
-        const sanitize = this.constructor.getValueByName(this.methodSanitizeHtml);
-        if (typeof sanitize === 'function') {
-            let html = '';
-            if (['TEMPLATE', 'SCRIPT', 'NOSCRIPT'].indexOf(element.tagName) > -1) {
-                html = element.innerHTML;
-            }
-            else {
-                html = element.outerHTML;
-            }
-            html = sanitize(html);
-            for (let child of this.constructor.getHtmlFromTemplate(html).children) {
-                element.parentElement.insertBefore(child, element);
-            }
-            element.remove();
-            element = null;
-        }
-        else {
-            console.error('ERROR: no html sanitize method defined.');
-        }
     }
     
     applyFunction(element, template) {
@@ -1186,5 +1240,16 @@ export class HtmlMess {
         else {
             return selectors.join('.');
         }
+    }
+    
+    registerPlugin(plugin, conf) {
+        const plug = new plugin(conf, this);
+        this.plugins[plug.name] = plug;
+        
+        this[plug.name] = (element, template) => {
+            return plug.method(element, template);
+        };
+        
+        this.methods.push(plug.name);
     }
 } // class HtmlMess
