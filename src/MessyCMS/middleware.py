@@ -329,7 +329,7 @@ class OpenGraph:
                 pass
             
             if og_html:
-                if 'twitter:cart' not in og_html:
+                if 'twitter:cart' not in og_html and b'twitter:card' not in response.content:
                     og_html += '<meta name="twitter:card" content="summary"/>\n'
                 og_html += '</head>\n'
                 og_html = og_html.encode(response.charset)
