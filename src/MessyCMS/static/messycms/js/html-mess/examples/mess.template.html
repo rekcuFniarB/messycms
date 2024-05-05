@@ -1,0 +1,111 @@
+
+<template id="wrapper-one"
+    data-select=".item1"
+    data-wrap-element
+    _data-strip-html
+    data-not-closest=".wrapper-ul"
+>
+    <ul class="wrapper-ul">
+        <li><b>Wrapper One:</b></li>
+        <li data-insert></li>
+    </ul>
+    
+    <!--
+        data-strip-html removes html from selected element
+            (also it copies content instead of moving)
+        keeps plain text only.
+    -->
+</template>
+
+<template id="move-one"
+    data-select="main > .wrapper-ul < [data-insert]"
+    data-append-child="#aside"
+    data-not-closest="#aside"
+    data-if-selector="body > main"
+    data-not-if-selector="body > footer"
+    data-replace=".wrapper-ul < [data-insert]"
+>
+<!--
+    Optional closest selector allows to check for children.
+    You can select child element first with data-select,
+    then move upper and select parent using data-closest.
+    
+    data-not-closest allows skipping element. This allows skip
+    already processes elements. For example, you want to move an element
+    into <aside> block. Using data-not-closest="aside" will skip already
+    moved element.
+    
+    data-if-selector additional check if selector exists globally
+    data-not-if-selector will not apply this rule if selector exists globally.
+    
+    data-replace if element already exists there, replace with new.
+    data-clone copy instead of moving.
+-->
+</template>
+
+<template id="clone-one"
+    data-select=".wrapper-ul"
+    data-id="cloned-one"
+></template>
+
+<template id="insert-before"
+    data-select="#insert-before"
+    data-insert-before="aside"
+    data-not-if-selector="#insert-before + aside"
+></template>
+
+<template id="add-classes"
+    data-select=".wrapper-ul, aside"
+    data-add-classes="add1 remove2 add2 remove1 add3"
+    data-remove-classes="remove1 remove2"
+    data-not-closest=".add2"
+></template>
+
+<template id="remove"
+    data-select=".remove-element"
+    data-remove-element
+></template>
+
+<template id="apply-function"
+    data-select="h2"
+    data-apply-function="App.applyFunction"
+    data-not-if-selector="#aside .inserted"
+></template>
+
+<template id="insert-self"
+    data-append-child="#aside"
+    data-replace=".inserted"
+    data-not-if-selector="#aside .inserted"
+>
+    <h2 class="inserted">INSERTED</h2>
+</template>
+
+<script type="text/html" id="example-handlebars"
+    data-select="App.dataGet"
+    data-handlebars
+    data-append-child="#aside"
+    data-replace="#hb-test"
+    data-not-if-selector="#aside < #hb-test"
+>
+    <section id="hb-test">
+        <h3>HB TEST</h3>
+        <p>{{ value }}</p>
+        
+        {{>hb-partial data=.}}
+    </section>
+    <!--
+        Handlebars templates supported.
+        In ths case data-select refers to
+        a function which prepares data
+        for the template.
+    -->
+</script>
+
+<script type="text/html" id="hb-partial"
+    data-handlebars-partial
+>
+    <p>Value is {{ data.value2 }}</p>
+    <!--
+        id will be usead as partial name
+    -->
+</script>

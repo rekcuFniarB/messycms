@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>mess-example</title>
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css/out/water.css">-->
+    <link rel="stylesheet" href="https://bafybeidljsjtiajbwy5yydrcmnp5qv7lgsqn24gmkhrneftgh3fp7ea7je.ipfs.dweb.link/water.min.css" integrity="AIXfqVFpmFFCIEQy3AvAvWsutX42KJfmLcTnQtB/Gcjyc2Ezt5mN+VUcKF0sA4VI" crossorigin="anonymous">
+    <!-- Other css alternatives: https://css-tricks.com/no-class-css-frameworks/ -->
+    <meta name="generator" content="https://github.com/rekcuFniarB/HtmlBoilerplate#readme">
+    <style>
+    .mess-processing main {
+        border 1 px dashed;
+    }
+    .processing {
+        background-color: red;
+        color: white;
+        visibility: hidden;
+    }
+    .mess-processing .processing {
+        visibility: visible;
+    }
+  </style>
+  </head>
+
+  
+  <body data-one="a < b &lt; d">
+    <main id="main">
+    
+        <div class="processing">PROCESSING</div>
+    
+    <div class="item1">Item 1</div>
+    
+    <div class="item2">Item 2</div>
+    
+            <section class="links">
+            <ul>
+            <li><a href="23video.unminified.js">23video.unminified.js</a></li>
+<li><a href="admin.js">admin.js</a></li>
+<li><a href="embedded-media-control.js">embedded-media-control.<i>js</i></a></li>
+<li><a href="html-mess.js">html-mess.js</a></li>
+<li><a href="media-embed.js">media-embed.<i>js</i></a></li>
+<li><a href="media-embed.js.tmp">media-embed.js.tmp</a></li>
+<li><a href="messycms.js">messycms.js</a></li>
+<li><a href="soundcloud.api.unminified.js">soundcloud.api.unminified.js</a></li>
+            </ul>
+            </section>
+            
+            
+            <div id="form-wrapper">
+                <form action="." data-target="#form-wrapper"
+                    data-select-children="form" class="qwerty"
+                    data-on-success="App.applyFunction" method="POST">
+                    <input type="hidden" name="hidval" value="hiddenval">
+                    <input type="submit" name="ok" value="submit">
+                </form>
+            </div>
+            
+            <noscript data-sanitize-element>
+                <div onclick="alert('lol')">This was sanitized
+                    <script>console.log('lol');</script>
+                    <iframe></iframe>
+                </div>
+            </noscript>
+            
+            <aside id="aside">
+                <h2>Aside</h2>
+                
+                <div data-include-url="part.html" data-select-children="i"></div>
+                
+                <div id="insert-before">Insert before aside</div>
+                
+                <div class="wrapper-ul"><div data-insert>TO BE REPLACED</div></div>
+                
+                <p><a href="./">Click me</a></p>
+            </aside>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+    <script type="module">
+    import dompurify from 'https://cdn.jsdelivr.net/npm/dompurify@3/+esm';
+    import { HtmlMess } from '../html-mess.js';
+    if (!window.mess) {
+        window.dompurify = dompurify;
+        window.mess = new HtmlMess({
+            ajaxModeTarget: 'main',
+            ajaxModeSelect: '[id]',
+            methodSanitizeHtml: dompurify.sanitize,
+            postprocessCycleLimit: 100,
+            DEBUG: true,
+        });
+        
+        (async function() {
+            window.templates = await mess.loadTemplates('mess.template.html?v=6');
+        })();
+        
+        window.App = {
+            applyFunction(element, template) {
+                return console.log('APPLYING:', element, template);
+            },
+            
+            dataGet(template) {
+                return {
+                    value: 'example value 1',
+                    value2: 'example value 2',
+                };
+            }
+        }
+    }
+    </script>
+  </body>
+</html>
