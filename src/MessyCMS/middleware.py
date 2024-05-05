@@ -317,14 +317,20 @@ class OpenGraph:
                 og_description = html_escape(og_description)
                 og_html += f'<meta property="og:description" content="{og_description}"/>\n'
             
-            og_url = 'https://'
-            if not request.is_secure():
-                og_url='http://'
-            og_url += request.META.get('HTTP_HOST')
-            og_url += response.messyContext['request_node'].get_absolute_url()
-            og_html += f'<meta property="og:url" content="{html_escape(og_url)}">\n'
+            
+            try:
+                og_url = 'https://'
+                if not request.is_secure():
+                    og_url='http://'
+                og_url += request.META.get('HTTP_HOST')
+                og_url += response.messyContext['request_node'].get_absolute_url()
+                og_html += f'<meta property="og:url" content="{html_escape(og_url)}">\n'
+            except:
+                pass
             
             if og_html:
+                if 'twitter:cart' not in og_html:
+                    og_html += '<meta name="twitter:card" content="summary"/>\n'
                 og_html += '</head>\n'
                 og_html = og_html.encode(response.charset)
                 ## Appending to the end of html head
