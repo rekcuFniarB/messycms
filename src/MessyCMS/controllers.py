@@ -96,6 +96,7 @@ def raise_404_error(request, exception='Not found.'):
             raise Http404(exception)
     else:
         raise Http404(exception)
+
 ## get requested node
 def show_node(request, id=0, path=''):
     ''' /<str:path>/ request handler.'''

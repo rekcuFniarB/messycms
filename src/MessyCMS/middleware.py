@@ -4,6 +4,7 @@ from MessyCMS.models import Node
 from django.shortcuts import render
 from django.utils.html import escape as html_escape
 from django.http.response import HttpResponse, HttpResponseNotFound
+import json
 
 _thread_locals = threading.local()
 
@@ -167,9 +168,12 @@ class PluggableExternalAppsWrapper:
         if responseContentType:
             kwargs['content_type'] = responseContentType
         
+        is_ajax = False
+        
         if 'HTTP_X_REQUESTED_WITH' in request.META:
             ## If is ajax request, don't extend base template
             template_type = 'internal'
+            is_ajax = True
         elif responseContentType and not responseContentType.startswith('text/html'):
             template_type = 'internal'
         else: ## { not ajax
@@ -203,8 +207,19 @@ class PluggableExternalAppsWrapper:
             'request_node': request_node,
             'template_node': node,
             'allnodes': {},
-            'template_type': template_type
+            'template_type': template_type,
+            'is_ajax': is_ajax,
+            'metadata': None,
         }
+        
+        if is_ajax:
+            context['metadata'] = json.dumps({
+                'title': node.title,
+                'slug': node.slug,
+                'short': node.short,
+                'menu_title': node.menu_title,
+                'url': node.get_absolute_url()
+            })
         
         ## "allnodes" will contain all rendered subnodes
         response = render(request, templates[template_type], context, **kwargs)

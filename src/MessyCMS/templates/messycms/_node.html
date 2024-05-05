@@ -1,11 +1,8 @@
     {% include node %} {# renders node by calling node.render() #}
     
-    {% if request.GET.metadata %}
-        <script class="section-metadata" type="text/html" data-path="{{ node.get_absolute_url }}">
-            <div data-field="title">{{ node.title }}</div>
-            <div data-field="slug">{{ node.slug }}</div>
-            <div data-field="short">{{ node.short }}</div>
-            <div data-field="menu_title">{{ node.menu_title }}</div>
+    {% if is_ajax %}
+        <script class="section-metadata" type="application/json" data-path="{{ node.get_absolute_url }}">
+            {{ metadata|safe }}
         </script>
     {% endif %}
     
