@@ -7,7 +7,7 @@
  * applies DOMPurify.sanitize and inserts sanitized html into page.
  */
 
-class HtmlMessSanitizeElementPlugin {
+class HtmlMessSanitizePlugin {
     name = 'sanitizeElement';
     domPurifySrc = '';
     
@@ -27,7 +27,29 @@ class HtmlMessSanitizeElementPlugin {
                     else {
                         html = element.outerHTML;
                     }
-                    html = DOMPurify.sanitize(html.trim());
+                    
+                    const config = {
+                        ALLOW_DATA_ATTR: false,
+                        ALLOW_ARIA_ATTR: false,
+                        FORBID_TAGS: ['style', 'svg', 'mathml', 'object']
+                    };
+                    
+                    if (template.dataset.forbidAttr) {
+                        config.FORBID_ATTR = template.dataset.forbidAttr
+                            .split(',')
+                            .map(x => x.trim())
+                            .filter(x => x);
+                    }
+                    
+                    if (template.dataset.forbidTags) {
+                        config.FORBID_TAGS = template.dataset.forbidTags
+                            .split(',')
+                            .map(x => x.trim())
+                            .filter(x => x);
+                    }
+                    
+                    html = DOMPurify.sanitize(html.trim(), config);
+                    
                     let sanitizedNodes =
                         [...this.parent.constructor.getHtmlFromTemplate(html).childNodes];
                     for (let node of sanitizedNodes) {

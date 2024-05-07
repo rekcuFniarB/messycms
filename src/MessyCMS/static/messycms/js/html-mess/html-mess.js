@@ -1059,7 +1059,7 @@ class HtmlMess {
         return elements;
     }
     
-    includeUrl(template) {
+    includeUrl(element, template) {
         if (!template.dataset.includeUrl) {
             return false;
         }

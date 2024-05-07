@@ -46,13 +46,19 @@
             </form>
         </div>
         
-        <noscript data-sanitize-element>
+        <noscript data-sanitize-element
+            data-forbid-attr="style">
             Sanitized text
             
-            <div onclick="alert('lol')" class="sanitized">
+            <div onclick="alert('lol')" class="sanitized"
+                data-some-info="lol"
+                style="border: 2px solid red;">
                 This was sanitized
                 <script>console.log('lol');</script>
                 <iframe></iframe>
+                <style>
+                    body: background-color: green;
+                </style>
             </div>
         </noscript>
         
@@ -72,8 +78,9 @@
     </main>
     
     <script src="../html-mess.js"></script>
-    <script src="../html-mess.sanitize-element.plugin.js"></script>
+    <script src="../html-mess.sanitize.plugin.js"></script>
     <script src="../html-mess.handlebars.plugin.js"></script>
+    
     <script type="text/javascript">
     if (!window.mess) {
         window.mess = new HtmlMess({
@@ -82,7 +89,7 @@
             DEBUG: true,
         });
         
-        mess.registerPlugin(HtmlMessSanitizeElementPlugin, {
+        mess.registerPlugin(HtmlMessSanitizePlugin, {
             domPurifySrc: 'https://cdn.jsdelivr.net/npm/dompurify@3'
         });
         mess.registerPlugin(HtmlMessHandlebarsPlugin, {
@@ -90,10 +97,6 @@
         });
         
         mess.loadTemplates('mess.template.html?v=6');
-        
-        // (async function() {
-        //     await mess.loadTemplates('mess.template.html?v=6');
-        // })();
         
         window.App = {
             applyFunction(element, template) {
