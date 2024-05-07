@@ -10,7 +10,7 @@ class HtmlMess {
     ajaxModeSelect = '';
     ajaxModeTarget = '';
     // Event name which will trigger postprocessing
-    postprocessEvent = 'load';
+    postprocessEvent = 'updated';
     templates = {};
     methods = [
         'includeUrl',
@@ -276,7 +276,15 @@ class HtmlMess {
         }
         
         if (this.postprocessEvent) {
-            window.addEventListener(this.postprocessEvent, event => this.postprocessAll(event));
+            document.addEventListener(this.postprocessEvent, event => this.postprocessAll(event));
+            if (document.readyState == 'complete') {
+                this.postprocessAll();
+            }
+            else {
+                window.addEventListener('load', event => this.postprocessAll(event), {
+                    once: true
+                });
+            }
         }
         
         this.modal = document.createElement('div');
@@ -624,6 +632,13 @@ class HtmlMess {
             let loadEvent = new Event('load', {bubbles: true, cancelable: true});
             document.dispatchEvent(loadEvent);
             window.dispatchEvent(loadEvent);
+            if (target) {
+                target.dispatchEvent(new Event('updated', {bubbles: true, cancelable: true}));
+                if (this.postprocessEvent !== 'updated') {
+                    target.dispatchEvent(new Event(this.postprocessEvent, {bubbles: true, cancelable: true}));
+                }
+            }
+            
             if (scrollOnFinish) {
                 var scrollToElement;
                 if (requestURL.hash.length > 1) {
@@ -861,7 +876,7 @@ class HtmlMess {
             templatesList[template.id] = template;
         }
         
-        window.dispatchEvent(new Event(this.postprocessEvent, {bubbles: true, cancelable: true}));
+        document.dispatchEvent(new Event(this.postprocessEvent, {bubbles: true, cancelable: true}));
         return templatesList;
     }
     
@@ -932,7 +947,7 @@ class HtmlMess {
                     }
                     else {
                         // Second pass untill nothing found to process
-                        window.dispatchEvent(
+                        document.dispatchEvent(
                             new Event(this.postprocessEvent),
                             {cancelable: true, bubbles: true}
                         );
