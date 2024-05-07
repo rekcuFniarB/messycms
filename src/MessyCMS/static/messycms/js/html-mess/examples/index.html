@@ -90,18 +90,18 @@
         mess.registerPlugin('handlebars', {
             dependencies: [
                 'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js',
-                '../html-mess.handlebars.plugin.js?v=4'
+                '../html-mess.handlebars.plugin.js?v=7'
             ]
         });
         
         mess.registerPlugin('sanitizeElement', {
             dependencies: [
                 'https://cdn.jsdelivr.net/npm/dompurify@3',
-                '../html-mess.sanitize.plugin.js?v=4'
+                '../html-mess.sanitize.plugin.js?v=7'
             ]
         });
         
-        mess.loadTemplates('mess.template.html?v=6');
+        mess.loadTemplates('mess.template.html?v=7');
         
         window.App = {
             applyFunction(element, template) {
@@ -111,13 +111,17 @@
             dataGet(template) {
                 return new Promise((resolve, reject) => {
                     resolve({
-                        value: 'example value 1',
-                        value2: 'example value 2',
+                        value: 'example value 1: ' + Date.now(),
+                        value2: 'example value 2: ' + Date.now(),
                     });
                 });
             }
         }
     }
+    </script>
+    
+    <script type="application/json" id="json-for-hb">
+        {"value": "Some value from json data"}
     </script>
   </body>
 </html>

@@ -43,6 +43,20 @@ class HtmlMessHandlebarsPlugin {
             }
             
             return promise.then(data => {
+                if (
+                    data.tagName == 'SCRIPT'
+                    && data.type == 'application/json'
+                    && data.textContent
+                ) {
+                    try {
+                        data = JSON.parse(data.textContent);
+                    }
+                    catch (e) {
+                        console.error('JSON parse error for handlebars template in plugin', e, data);
+                        data = {};
+                    }
+                }
+                
                 let html = template._hb_tpl_render(data);
                 let tpl = document.createElement('div');
                 tpl.innerHTML = template.outerHTML;

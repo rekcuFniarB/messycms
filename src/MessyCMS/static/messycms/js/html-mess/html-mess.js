@@ -544,11 +544,14 @@ class HtmlMess {
                         let old = target.querySelector(`#${el.id}`);
                         if (!old && target.id == el.id) {
                             old = target;
+                            // Target is replaced
+                            target = el;
                         }
-                        if (old) {
+                        if (old && old != el) {
                             foundById = true;
                             old.parentElement.insertBefore(el, old);
                             old.remove();
+                            old = null;
                         }
                     }
                 }
