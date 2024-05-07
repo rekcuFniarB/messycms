@@ -17,52 +17,53 @@ class HtmlMessSanitizePlugin {
     }
     
     method(element, template) {
-        return this.parent.requireScript(this.domPurifySrc)
-            .then(() => {
-                if (typeof DOMPurify?.sanitize === 'function') {
-                    let html = '';
-                    if (['TEMPLATE', 'SCRIPT', 'NOSCRIPT'].indexOf(element.tagName) > -1) {
-                        html = element.innerHTML;
-                    }
-                    else {
-                        html = element.outerHTML;
-                    }
-                    
-                    const config = {
-                        ALLOW_DATA_ATTR: false,
-                        ALLOW_ARIA_ATTR: false,
-                        FORBID_TAGS: ['style', 'svg', 'mathml', 'object']
-                    };
-                    
-                    if (template.dataset.forbidAttr) {
-                        config.FORBID_ATTR = template.dataset.forbidAttr
-                            .split(',')
-                            .map(x => x.trim())
-                            .filter(x => x);
-                    }
-                    
-                    if (template.dataset.forbidTags) {
-                        config.FORBID_TAGS = template.dataset.forbidTags
-                            .split(',')
-                            .map(x => x.trim())
-                            .filter(x => x);
-                    }
-                    
-                    html = DOMPurify.sanitize(html.trim(), config);
-                    
-                    let sanitizedNodes =
-                        [...this.parent.constructor.getHtmlFromTemplate(html).childNodes];
-                    for (let node of sanitizedNodes) {
-                        element.parentElement.insertBefore(node, element);
-                    }
-                    // Removing source element
-                    element.remove();
-                    element = null;
-                    return true;
-                }
-                else {
-                    console.error('ERROR: no html sanitize method defined.');
-                }
-            });
+        if (typeof DOMPurify?.sanitize === 'function') {
+            let html = '';
+            if (['TEMPLATE', 'SCRIPT', 'NOSCRIPT'].indexOf(element.tagName) > -1) {
+                html = element.innerHTML;
+            }
+            else {
+                html = element.outerHTML;
+            }
+            
+            const config = {
+                ALLOW_DATA_ATTR: false,
+                ALLOW_ARIA_ATTR: false,
+                FORBID_TAGS: ['style', 'svg', 'mathml', 'object']
+            };
+            
+            if (template.dataset.forbidAttr) {
+                config.FORBID_ATTR = template.dataset.forbidAttr
+                    .split(',')
+                    .map(x => x.trim())
+                    .filter(x => x);
+            }
+            
+            if (template.dataset.forbidTags) {
+                config.FORBID_TAGS = template.dataset.forbidTags
+                    .split(',')
+                    .map(x => x.trim())
+                    .filter(x => x);
+            }
+            
+            html = DOMPurify.sanitize(html.trim(), config);
+            
+            let sanitizedNodes =
+                [...this.parent.constructor.getHtmlFromTemplate(html).childNodes];
+            for (let node of sanitizedNodes) {
+                element.parentElement.insertBefore(node, element);
+            }
+            // Removing source element
+            element.remove();
+            element = null;
+            return true;
+        }
+        else {
+            console.error('ERROR: no html sanitize method defined.');
+        }
     }
+}
+
+if (typeof HtmlMess?.knownPlugins?.sanitizeElement === 'undefined') {
+    HtmlMess.knownPlugins.sanitizeElement = HtmlMessSanitizePlugin;
 }

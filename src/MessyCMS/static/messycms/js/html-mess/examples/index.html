@@ -78,8 +78,6 @@
     </main>
     
     <script src="../html-mess.js"></script>
-    <script src="../html-mess.sanitize.plugin.js"></script>
-    <script src="../html-mess.handlebars.plugin.js"></script>
     
     <script type="text/javascript">
     if (!window.mess) {
@@ -89,11 +87,18 @@
             DEBUG: true,
         });
         
-        mess.registerPlugin(HtmlMessSanitizePlugin, {
-            domPurifySrc: 'https://cdn.jsdelivr.net/npm/dompurify@3'
+        mess.registerPlugin('handlebars', {
+            dependencies: [
+                'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js',
+                '../html-mess.handlebars.plugin.js?v=4'
+            ]
         });
-        mess.registerPlugin(HtmlMessHandlebarsPlugin, {
-            handlebarsSrc: 'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js'
+        
+        mess.registerPlugin('sanitizeElement', {
+            dependencies: [
+                'https://cdn.jsdelivr.net/npm/dompurify@3',
+                '../html-mess.sanitize.plugin.js?v=4'
+            ]
         });
         
         mess.loadTemplates('mess.template.html?v=6');

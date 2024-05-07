@@ -24,6 +24,7 @@ class HtmlMess {
         'addClasses',
     ];
     plugins = {};
+    static knownPlugins = {};
     
     constructor(conf) {
         const This = this;
@@ -1242,14 +1243,30 @@ class HtmlMess {
         }
     }
     
-    registerPlugin(plugin, conf) {
-        const plug = new plugin(conf, this);
-        this.plugins[plug.name] = plug;
+    registerPlugin(name, conf) {
+        if (this[name]) return this[name];
         
-        this[plug.name] = (element, template) => {
-            return plug.method(element, template);
+        this[name] = (element, template) => {
+            let promises = [];
+            if (!this.plugins[name]) {
+                for (let dep of conf.dependencies || []) {
+                    promises.push(this.requireScript(dep));
+                }
+            }
+            
+            return Promise.all(promises).then(() => {
+                const cls = this.constructor.knownPlugins[name];
+                if (typeof cls === 'function') {
+                    const plugin = new cls(conf, this);
+                    this.plugins[name] = plugin;
+                }
+                
+                if (typeof this.plugins[name]?.method === 'function') {
+                    return this.plugins[name]?.method(element, template);
+                }
+            });
         };
         
-        this.methods.push(plug.name);
+        this.methods.push(name);
     }
 } // class HtmlMess
